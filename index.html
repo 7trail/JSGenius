@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Textbook Helper</title>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<script type="importmap">
+		  {
+			"imports": {
+			  "@google/generative-ai": "https://esm.run/@google/generative-ai"
+			}
+		  }
+		</script>	
+		<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/showdown@2.0.3/dist/showdown.min.js"></script>
+		<link rel="stylesheet" href="styles.css">
+	</head>
+	
+	<body>
+		<!-- ... Your HTML and CSS -->
+		<!-- Import @google/generative-ai, as shown above. -->
+		<script type="module">
+			import { HarmBlockThreshold, HarmCategory, GoogleGenerativeAI } from "@google/generative-ai";
+
+			// Fetch your API_KEY
+			const API_KEY = "AIzaSyD9xMiW0oSglYPfQh95Rn0TRHpjTZFduaE";
+
+			// Access your API key (see "Set up your API key" above)
+			const genAI = new GoogleGenerativeAI(API_KEY);
+			
+			const safetySettings = [
+			  {
+				category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+				threshold: HarmBlockThreshold.BLOCK_NONE,
+			  },
+			  {
+				category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+				threshold: HarmBlockThreshold.BLOCK_NONE,
+			  },
+			  {
+				category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+				threshold: HarmBlockThreshold.BLOCK_NONE,
+			  },
+			  {
+				category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+				threshold: HarmBlockThreshold.BLOCK_NONE,
+			  },
+			];
+			
+			const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-exp-0827", systemInstruction: "You write textbooks and sections for textbooks and are detailed and informative", safetySettings});
+			
+			var body;
+			var textbox;
+			var converter = new showdown.Converter();
+			var status;
+			
+			var bookDict = {};
+			
+			function updateListBox() {
+				var select = document.getElementById('pagedict');
+				select.innerHTML = "";
+				for (const key in bookDict){
+					var opt = document.createElement('option');
+					opt.value = key;
+					opt.innerHTML = key;
+					select.appendChild(opt);
+				}
+			}
+			
+			function resetBook() {
+				bookDict = {};
+				updateListBox();
+			}
+			
+			function fullBook() {
+				let fullText = "";
+				for (const key in bookDict) {
+					fullText += bookDict[key] + "\n\n\n";
+				}
+				fullText = fullText.replace(/<code>.*?<\/code>/gs, '');
+				return fullText;
+			}
+			
+			function addToBook(key,value) {
+				bookDict[key] = value;
+				updateListBox();
+			}
+			
+			function setPage(key) {
+				window.scrollTo({ top: 0, behavior: 'smooth' });
+				body.innerHTML = bookDict[key];
+			}
+			
+			async function generateBook() {
+				resetBook();
+				let topic = textbox.value;
+				let tpcPrompt = `Write a list of ${document.getElementById("quantity").value} topics relating to ${topic}. Do not include a title or header for the list or any extra newlines. Only include the list elements with numbers. Use ONLY ASCII-safe characters. The first page should ALWAYS be a page talking broadly about the concept. Do not pick redundant topics. Do not provide anything in your response other than the list. Make sure each page covers a different aspect of ${topic}. Do not describe or provide detail to each topic here, only list them.`;
+				console.log(tpcPrompt);
+				status.textContent = "Creating list of pages";
+				let topicResponse = await generateResponse(tpcPrompt);
+				let topics = topicResponse.split('\n');
+				topics = topics.filter(n => n);
+				let topicFinal = "<h1>Table of Contents:</h2><br>";
+				for (const tpc1 of topics) {
+					topicFinal += "<p>"+tpc1+"</p>";
+				}
+				addToBook("Start", topicFinal);
+				setPage("Start");
+				let i = 1;
+				for (const tpc of topics) {
+					console.log(tpc);
+					status.textContent = `Writing page ${i}/${topics.length}`;
+					let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative section for a textbook on ${tpc} in ${topic}. Write at LEAST 2000 words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. DO NOT repeat material already covered in previous chapters. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be.`;
+					let page = await generateResponse(pagePrompt);
+					addToBook(tpc,converter.makeHtml(page));
+					i+=1;
+				}
+			}
+			
+			async function generateResponse(prompt, depth) {
+				//const prompt = textbox.value;
+				if (depth == null) {
+					depth = 0;
+				}
+				let contents = "";
+				try {
+					console.log(prompt);
+					const result = await model.generateContentStream(prompt);
+					
+					// Print text as it comes in.
+					for await (const chunk of result.stream) {
+						const chunkText = chunk.text();
+						contents += chunkText;
+					}
+					//console.log("getting here!" + contents);
+					
+				} catch (error) {
+					if (depth < 3) {
+						contents = generateResponse(prompt,depth+1);
+					}
+					else {
+						return "Uh oh! There was an issue generating this page. The issue is most likely the RECITATION error, which is a known problem. Google is working on fixing this known and sizable error.";
+					}
+				}
+				return contents;
+			}
+			
+			window.addEventListener("load", (event) => {
+			  body = document.getElementById("textgohere");
+			  textbox = document.getElementById("inp");
+			  status = document.getElementById("status");
+			  document.getElementById("btn").addEventListener("click",generateBook);
+			  document.getElementById("quantity").value = "5"; 
+			  document.getElementById('pagedict').addEventListener("change", function() {
+				setPage(document.getElementById('pagedict').value);
+			  });
+			});
+			
+			const elabTooltip = document.querySelector(".elaborate-tooltip");
+			document.addEventListener("mouseup", () => {
+				requestAnimationFrame(() => {
+					const selection = window.getSelection();
+					if (selection.isCollapsed) {
+						elabTooltip.style.display = "none";
+						return;
+					}
+					
+					const rect = selection.getRangeAt(0).getBoundingClientRect();
+					elabTooltip.style.display = 'block';
+					elabTooltip.style.left = `${rect.left + rect.width/2 - elabTooltip.clientWidth/2}px`;
+					elabTooltip.style.top = `${rect.top - elabTooltip.clientHeight}px`;
+				});
+			});
+			
+			const chatButton = document.getElementById("chatButton");
+			chatButton.addEventListener("click", async function() {
+				let text = document.getElementById("chatInp").value;
+				let pr = `${text}\n\nAnswer the above information. Be thorough and detailed and include at least 500 words.`;
+				document.getElementById("chatgohere").innerHTML = `<h1>Awaiting response...</h1>`;
+				const result = await model.generateContentStream(pr);
+				let contents = "";
+				// Print text as it comes in.
+				for await (const chunk of result.stream) {
+					const chunkText = chunk.text();
+					contents += chunkText;
+					document.getElementById("chatgohere").innerHTML = converter.makeHtml(contents);
+				}
+			});
+			
+			const elabButton = document.querySelector(".elaborate-button");
+			elabButton.addEventListener("mousedown", async function() {
+				const selection = window.getSelection();
+				const selectedText = selection.toString();
+				let pr = `${selectedText} \n\n Elaborate on the above text. Provide details and include at least 500 words. Be thorough.`;
+				document.getElementById('tab2').click();
+				document.getElementById("chatgohere").innerHTML = `<h1>Elaborating...</h1>`;
+				const result = await model.generateContentStream(pr);
+				let contents = "";
+				// Print text as it comes in.
+				for await (const chunk of result.stream) {
+					const chunkText = chunk.text();
+					contents += chunkText;
+					document.getElementById("chatgohere").innerHTML = converter.makeHtml(contents);
+				}
+			});
+			
+			
+			
+		</script>
+		<div class="elaborate-tooltip">
+			<div class="elaborate-button">Elaborate</div>
+		</div>
+		<div class="wrapper">
+			<div class="sidebar">
+				<div class="sections">
+					<div class="section">
+						<div id="fields">
+						<h1>AI Textbooks</h1>
+						
+						<label for="imp">Chapter Topic:</label>
+						<br>
+						<input id="inp"></input>
+						<br>
+						<br>
+						<label for="quantity">Page Number (3-10):</label>
+						<input type="number" id="quantity" name="quantity" min="3" max="10"><br><br>
+						</div>
+						
+						<button id="btn"><h3>Generate</h3></button>
+						<br>
+						<select id="pagedict" Name="Table of Contents">
+						</select>  
+						<br>
+						<div id="status">Idle!</div>
+					</div>
+					
+				</div>
+			</div>
+			<div id="body">
+				<div class="container">
+					<input type="radio" name="tab" id="tab1" checked>
+					<label class="tab" for="tab1">Book</label>
+					<input type="radio" name="tab" id="tab2">
+					<label class="tab" for="tab2">Chat</label>
+					<input type="radio" name="tab" id="tab3">
+					<label class="tab" for="tab3">About</label>
+					<div id="textgohere" class="content1" id="content1">The contents of your book will appear here!</div>
+					<div class="content2" id="chat">
+						<div id="chatgohere">
+							WIP! Conversation and elaboration features coming soon.
+						</div>
+						<div id="chatInputs">
+							<input id="chatInp"></input>
+							<br>
+							<button id="chatButton">Ask!</button>
+						</div>
+					</div>
+					<div class="content3" id="content3">A.P. 8/28/2024</div>
+				</div>
+			</div>
+		</div>
+		
+		
+
+		
+	</body>
+
+	
+	
+</html>
