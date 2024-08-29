@@ -16,6 +16,16 @@
   padding: 15px;
 }
 
+#newPage {
+	width: 100%;
+	text-align:center;
+
+}
+
+#newPageButton {
+	width: 25%;
+}
+
 #body,.section {
   background-color: #fafafa;
   border: 3px solid black;
@@ -31,7 +41,7 @@
 	margin-top:15px;
 	margin-bottom:15px;
 	width:95%;
-	height: 3vh;
+	/*height: 3vh;*/
 	text-align:center;
 	margin-left:2.5%;
 }
@@ -100,15 +110,18 @@ body {
 
 #btn {
 	margin-left:2.5%;
-	color: white;
 	width: 95%;
 	height: 75px;
+	margin-right:15px;
+}
+
+.animBtn {
+	color: white;
 	background: linear-gradient(120deg, purple, blue, purple);
 	background-size: 200% 100%;
 	background-position: 100% 0;
 	transition: background-position .5s;
 	border-radius: 5px;
-	margin-right:15px;
 }
 
 #status {
@@ -116,7 +129,7 @@ body {
 	margin-bottom: 15px;
 }
 
-#btn:hover {
+.animBtn:hover {
   background-position: 0 0;
 }
 

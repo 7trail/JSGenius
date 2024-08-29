@@ -46,7 +46,15 @@
 			  },
 			];
 			
-			const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-exp-0827", systemInstruction: "You write textbooks and sections for textbooks and are detailed and informative", safetySettings});
+			const startingPrompts = [
+				"For loops in Python",
+				"Introductory Algebra",
+				"Basics of Cooking",
+				"First steps in C++",
+				"Formal writing"
+			];
+			
+			const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-exp-0827", systemInstruction: "You write textbooks and sections for textbooks and are detailed and informative. You write so beginners can understand, but provide depth and complexity.", safetySettings});
 			
 			var body;
 			var textbox;
@@ -54,6 +62,11 @@
 			var status;
 			
 			var bookDict = {};
+			
+			function playSound(url) {
+			  const audio = new Audio(url);
+			  audio.play();
+			}
 			
 			function updateListBox() {
 				var select = document.getElementById('pagedict');
@@ -103,8 +116,8 @@
 				for (const tpc1 of topics) {
 					topicFinal += "<p>"+tpc1+"</p>";
 				}
-				addToBook("Start", topicFinal);
-				setPage("Start");
+				addToBook("Table of Contents", topicFinal);
+				setPage("Table of Contents");
 				let i = 1;
 				for (const tpc of topics) {
 					console.log(tpc);
@@ -115,6 +128,16 @@
 					i+=1;
 				}
 				status.textContent = "Done!";
+			}
+			
+			async function addPage() {
+				let tpc = document.getElementById("newPageInp").value;
+				if (tpc == "") { return; }
+				status.textContent = `Adding page`;
+				let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative section for a textbook on ${tpc}. Write at LEAST 2000 words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. DO NOT repeat material already covered in previous chapters. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be.`;
+				let page = await generateResponse(pagePrompt);
+				addToBook(tpc,converter.makeHtml(page));
+				status.textContent = `Done!`;
 			}
 			
 			async function generateResponse(prompt, depth) {
@@ -133,7 +156,7 @@
 						contents += chunkText;
 					}
 					//console.log("getting here!" + contents);
-					
+					playSound("noise.wav");
 				} catch (error) {
 					if (depth < 3) {
 						contents = generateResponse(prompt,depth+1);
@@ -142,14 +165,17 @@
 						return "Uh oh! There was an issue generating this page. The issue is most likely the RECITATION error, which is a known problem. Google is working on fixing this known and sizable error.";
 					}
 				}
+				
 				return contents;
 			}
 			
 			window.addEventListener("load", (event) => {
 			  body = document.getElementById("textgohere");
 			  textbox = document.getElementById("inp");
+			  textbox.value = startingPrompts[[Math.floor(Math.random()*startingPrompts.length)]];
 			  status = document.getElementById("status");
 			  document.getElementById("btn").addEventListener("click",generateBook);
+			  document.getElementById("newPageButton").addEventListener("click",addPage);
 			  document.getElementById("quantity").value = "5"; 
 			  document.getElementById('pagedict').addEventListener("change", function() {
 				setPage(document.getElementById('pagedict').value);
@@ -160,6 +186,13 @@
 			document.addEventListener("mouseup", () => {
 				requestAnimationFrame(() => {
 					const selection = window.getSelection();
+					const text = selection.toString().replace(/\s/g, "");
+					
+					if (!body.textContent.replace(/\s/g, "").includes(text)) {
+						elabTooltip.style.display = "none";
+						return;
+					}
+					
 					if (selection.isCollapsed) {
 						elabTooltip.style.display = "none";
 						return;
@@ -172,6 +205,11 @@
 				});
 			});
 			
+			window.onscroll = function (e)
+			{
+				elabTooltip.style.display = "none";
+			}
+			
 			const chatButton = document.getElementById("chatButton");
 			chatButton.addEventListener("click", async function() {
 				let text = document.getElementById("chatInp").value;
@@ -179,12 +217,13 @@
 				document.getElementById("chatgohere").innerHTML = `<h1>Awaiting response...</h1>`;
 				const result = await model.generateContentStream(pr);
 				let contents = "";
-				// Print text as it comes in.
+				// Print text as it comes in. This is a deviation from the standard function.
 				for await (const chunk of result.stream) {
 					const chunkText = chunk.text();
 					contents += chunkText;
 					document.getElementById("chatgohere").innerHTML = converter.makeHtml(contents);
 				}
+				playSound("noise.wav");
 			});
 			
 			const elabButton = document.querySelector(".elaborate-button");
@@ -196,12 +235,13 @@
 				document.getElementById("chatgohere").innerHTML = `<h1>Elaborating...</h1>`;
 				const result = await model.generateContentStream(pr);
 				let contents = "";
-				// Print text as it comes in.
+				// Print text as it comes in. This is a deviation from the standard function.
 				for await (const chunk of result.stream) {
 					const chunkText = chunk.text();
 					contents += chunkText;
 					document.getElementById("chatgohere").innerHTML = converter.makeHtml(contents);
 				}
+				playSound("noise.wav");
 			});
 			
 			
@@ -226,10 +266,16 @@
 						<input type="number" id="quantity" name="quantity" min="3" max="10"><br><br>
 						</div>
 						
-						<button id="btn"><h3>Generate</h3></button>
+						<button id="btn" class="animBtn"><h3>Generate</h3></button>
 						<br>
-						<select id="pagedict" Name="Table of Contents">
+						<select id="pagedict" Name="Table of Contents" size="10">
 						</select>  
+						<br>
+						<div id="newPage">
+							<input id="newPageInp"></input>
+							<button id="newPageButton" class="animBtn">Add Page</button>
+						
+						</div>
 						<br>
 						<div id="status">Idle!</div>
 					</div>
