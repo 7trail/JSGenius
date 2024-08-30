@@ -19,7 +19,6 @@
 #newPage {
 	width: 100%;
 	text-align:center;
-
 }
 
 #newPageButton {
@@ -34,7 +33,7 @@
 
 #body {
   width: 70%;
-  height: 100vh;
+  min-height: 100vh;
 }
 
 #pagedict {
@@ -75,17 +74,19 @@
 	transform: translateX(-50%);
 }
 
-code {
+pre {
 	background-color: #eee;
+	border-radius: 10px;
+	padding: 5px;
 }
 
-.elaborate-button {
+.elaborate-button, .practice-button {
 	font-size: 14px;
 	padding: 5px 10px;
 	cursor: pointer;
 }
 
-.elaborate-button:hover {
+.elaborate-button:hover, .practice-button:hover {
 	background: #333;
 }
 
@@ -102,11 +103,11 @@ body {
   padding: 10px;
 }
 
-#textgohere,#chatgohere {
+/*#textgohere,#chatgohere {
 	position: absolute;
 	overflow-y:scroll;
 	height: calc(90%);
-}
+}*/
 
 #btn {
 	margin-left:2.5%;
@@ -116,8 +117,17 @@ body {
 }
 
 .animBtn {
-	color: white;
-	background: linear-gradient(120deg, purple, blue, purple);
+	
+	background: linear-gradient(120deg, #81F4E1, #56CBF9, #81F4E1);
+	background-size: 200% 100%;
+	background-position: 100% 0;
+	transition: background-position .5s;
+	border-radius: 5px;
+}
+
+.animBtn2 {
+	
+	background: linear-gradient(120deg, pink, #ff6666, pink);
 	background-size: 200% 100%;
 	background-position: 100% 0;
 	transition: background-position .5s;
@@ -129,8 +139,12 @@ body {
 	margin-bottom: 15px;
 }
 
-.animBtn:hover {
+.animBtn:hover, .animBtn2:hover {
   background-position: 0 0;
+}
+
+#btn:hover {
+	font-size: 16px;
 }
 
 .section {
@@ -166,7 +180,8 @@ body {
 
 .content1,
 .content2,
-.content3 {
+.content3,
+.content4 {
     display: none;
     padding: 20px;
     border-top: 2px solid #999999;
@@ -203,6 +218,10 @@ label.tab {
     border-color: #999999;
 }
 
+#tab4:checked+label {
+    border-color: #999999;
+}
+
 #tab1:checked~.content1 {
     display: block;
 }
@@ -213,4 +232,98 @@ label.tab {
 
 #tab3:checked~.content3 {
     display: block;
+}
+
+#tab4:checked~.content4 {
+    display: flex;
+}
+
+#content4 {
+	flex-direction: row;
+	width: 100%;
+	box-sizing: border-box;
+	
+}
+
+#question {
+	background-color: #c2e9ff;
+	height: 60vh;
+	margin-right: 10px;
+}
+
+#answer {
+	background-color: #ffc2d0;
+	height: 60vh;
+}
+
+#answerholder {
+	margin-left: 10px;
+}
+
+#question, #answer {
+	border-radius: 10px;
+	padding: 10px;
+	overflow-y:scroll;
+}
+
+#content4 > div {
+	height: 100%;
+	flex: 1;
+	
+	box-sizing: border-box;
+	height: 100vh;
+}
+
+fieldset {
+    display: flex;
+}
+
+fieldset > textarea {
+    resize: none;
+    padding: 10px;
+	width: 80%;
+    box-sizing: border-box;
+}
+
+fieldset > button {
+	padding: 10px;
+    width: 15%;
+    margin-left: 10px;
+    box-sizing: border-box;
+    font-size: 16px;
+}
+
+@media (max-width: 600px) {
+   .wrapper {
+	   flex-direction: column;
+   }
+   
+   .sidebar {
+	   position: relative;
+	   width: 100%;
+	   height: auto;
+   }
+   
+   #body {
+	   position:relative;
+	   margin-top: 15px;
+	   max-width: 90%;
+	   min-width: 90%;
+	   height: 100vh;
+   }
+   
+   label.tab {
+	   width: 20vw;
+	   height: 5vh;
+   }
+   
+   select {
+	   height: 35vh;
+   }
+   
+   #textgohere, #chatgohere {
+	   padding: 0;
+	   position: relative;
+	   width: calc(100%);
+   }
 }

@@ -21,6 +21,7 @@
 		<script type="module">
 			import { HarmBlockThreshold, HarmCategory, GoogleGenerativeAI } from "@google/generative-ai";
 
+			// Default export is a4 paper, portrait, using millimeters for units
 			// Fetch your API_KEY
 			const API_KEY = "AIzaSyD9xMiW0oSglYPfQh95Rn0TRHpjTZFduaE";
 
@@ -63,6 +64,23 @@
 			
 			var bookDict = {};
 			
+			function printDiv(txt, title) {
+			  let mywindow = window.open('', 'PRINT', 'height=650,width=900,top=100,left=150');
+
+			  mywindow.document.write(`<html><head><title>${title}</title>`);
+			  mywindow.document.write('</head><body >');
+			  mywindow.document.write(txt);
+			  mywindow.document.write('</body></html>');
+
+			  mywindow.document.close(); // necessary for IE >= 10
+			  mywindow.focus(); // necessary for IE >= 10*/
+
+			  mywindow.print();
+			  mywindow.close();
+
+			  return true;
+			}
+			
 			function playSound(url) {
 			  const audio = new Audio(url);
 			  audio.play();
@@ -104,8 +122,13 @@
 			}
 			
 			async function generateBook() {
+				let topic = textbox.value.trim();
+				if (topic == "") {
+					alert("Please provide a prompt! Example: How to write Python code");
+					return;
+				}
 				resetBook();
-				let topic = textbox.value;
+				
 				let tpcPrompt = `Write a list of ${document.getElementById("quantity").value} topics relating to ${topic}. Do not include a title or header for the list or any extra newlines. Only include the list elements with numbers. Use ONLY ASCII-safe characters. The first page should ALWAYS be a page talking broadly about the concept. Do not pick redundant topics. Do not provide anything in your response other than the list. Make sure each page covers a different aspect of ${topic}. Do not describe or provide detail to each topic here, only list them.`;
 				console.log(tpcPrompt);
 				status.textContent = "Creating list of pages";
@@ -122,7 +145,7 @@
 				for (const tpc of topics) {
 					console.log(tpc);
 					status.textContent = `Writing page ${i}/${topics.length}`;
-					let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative section for a textbook on ${tpc} in ${topic}. Write at LEAST 2000 words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. DO NOT repeat material already covered in previous chapters. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be.`;
+					let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative section for a textbook on ${tpc} in ${topic}. Write at LEAST 2000 words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. DO NOT repeat material already covered in previous chapters. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be. Your content should be easy to follow for a newcomer and take the time it needs to cover a concept fully.`;
 					let page = await generateResponse(pagePrompt);
 					addToBook(tpc,converter.makeHtml(page));
 					i+=1;
@@ -175,9 +198,12 @@
 			  textbox.value = startingPrompts[[Math.floor(Math.random()*startingPrompts.length)]];
 			  status = document.getElementById("status");
 			  document.getElementById("btn").addEventListener("click",generateBook);
+			  document.getElementById("printBtn").addEventListener("click",printPDF);
 			  document.getElementById("newPageButton").addEventListener("click",addPage);
 			  document.getElementById("quantity").value = "5"; 
+			  
 			  document.getElementById('pagedict').addEventListener("change", function() {
+				document.getElementById('tab1').click();
 				setPage(document.getElementById('pagedict').value);
 			  });
 			});
@@ -201,7 +227,7 @@
 					const rect = selection.getRangeAt(0).getBoundingClientRect();
 					elabTooltip.style.display = 'block';
 					elabTooltip.style.left = `${rect.left + rect.width/2 - elabTooltip.clientWidth/2}px`;
-					elabTooltip.style.top = `${rect.top - elabTooltip.clientHeight}px`;
+					elabTooltip.style.top = `${rect.top - elabTooltip.clientHeight + window.scrollY}px`;
 				});
 			});
 			
@@ -244,11 +270,53 @@
 				playSound("noise.wav");
 			});
 			
+			const pracButton = document.querySelector(".practice-button");
+			pracButton.addEventListener("mousedown", async function() {
+				const selection = window.getSelection();
+				const selectedText = selection.toString();
+				let pr = `${selectedText} \n\n Create a free-form practice problem using the concepts described in the provided text.`;
+				document.getElementById('tab4').click();
+				document.getElementById("question").innerHTML = `<h1>Elaborating...</h1>`;
+				const result = await model.generateContentStream(pr);
+				let contents = "";
+				// Print text as it comes in. This is a deviation from the standard function.
+				for await (const chunk of result.stream) {
+					const chunkText = chunk.text();
+					contents += chunkText;
+					document.getElementById("question").innerHTML = converter.makeHtml(contents);
+				}
+				playSound("noise.wav");
+			});
 			
+			const answerButton = document.getElementById("answerButton");
+			answerButton.addEventListener("mousedown", async function() {
+				
+				let text = document.getElementById("question").textContent;
+				let answer = document.getElementById("answerInp").value;
+				if (text.trim() == "" || answer.trim() == "") {
+					alert("Uh oh! Make sure you have a question and an answer.");
+					return;
+				}
+				let pr = `${text}\n\n\n This is a practice problem. Below is what I answered: \n\n\n ${answer} \n\n Provide feedback on my answer. Tell me if it is correct or not, and how I can further learn.`;
+				document.getElementById("answer").innerHTML = `<h1>Awaiting response...</h1>`;
+				const result = await model.generateContentStream(pr);
+				let contents = "";
+				// Print text as it comes in. This is a deviation from the standard function.
+				for await (const chunk of result.stream) {
+					const chunkText = chunk.text();
+					contents += chunkText;
+					document.getElementById("answer").innerHTML = converter.makeHtml(contents);
+				}
+				playSound("noise.wav");
+			});
+			
+			function printPDF() {
+				printDiv(converter.makeHtml(fullBook()), "Book");
+			}
 			
 		</script>
 		<div class="elaborate-tooltip">
-			<div class="elaborate-button">Elaborate</div>
+			<div class="elaborate-button">Elaborate</div><div class="practice-button">Practice</div>
 		</div>
 		<div class="wrapper">
 			<div class="sidebar">
@@ -259,11 +327,11 @@
 						
 						<label for="imp">Chapter Topic:</label>
 						<br>
-						<input id="inp"></input>
+						<textarea rows="5" style=" width: 90%; resize:none;" maxlength="180" placeholder="Prompt goes here..." id="inp"></textarea>
 						<br>
 						<br>
 						<label for="quantity">Page Number (3-10):</label>
-						<input type="number" id="quantity" name="quantity" min="3" max="10"><br><br>
+						<input type="number" id="quantity" name="quantity" min="3" max="10" onkeyup="if(value<3) value=3; if (value > 10) value = 10;"><br><br>
 						</div>
 						
 						<button id="btn" class="animBtn"><h3>Generate</h3></button>
@@ -288,12 +356,18 @@
 					<label class="tab" for="tab1">Book</label>
 					<input type="radio" name="tab" id="tab2">
 					<label class="tab" for="tab2">Chat</label>
+					<input type="radio" name="tab" id="tab4">
+					<label class="tab" for="tab4">Practice</label>
 					<input type="radio" name="tab" id="tab3">
-					<label class="tab" for="tab3">About</label>
-					<div id="textgohere" class="content1" id="content1">The contents of your book will appear here!</div>
+					<label class="tab" for="tab3">Options</label>
+					<div class="content1" id="content1">
+						<div id="textgohere">
+						The contents of your book will appear here!
+						</div>
+					</div>
 					<div class="content2" id="chat">
 						<div id="chatInputs">
-							<input id="chatInp"></input>
+							<textarea rows="5" style="width: 80%; resize:none;" placeholder="Your question goes here!" id="chatInp"></textarea>
 							<br>
 							<button id="chatButton">Ask!</button>
 						</div>
@@ -302,8 +376,37 @@
 							Pretty UI coming soon! Try sending a message.
 						</div>
 					</div>
-					<div class="content3" id="content3">A.P. 8/28/2024</div>
-				</div>
+					<div class="content4" id="content4">
+						<div>
+							<div id="question">Question</div>
+						</div>
+						<div id = "answerholder">
+							<div id="answer">
+							Answer
+							</div>
+							<fieldset id="answerSection">
+								<textarea id="answerInp" rows="5" style="width: 80%; resize:none;" placeholder="Your answer goes here!">
+								
+								</textarea>
+								<button class="animBtn2" id="answerButton">Send</button>
+							</fieldset>
+						</div>
+					</div>
+					<div class="content3" id="content3">
+						<button class="animBtn" style="width: 25%; font-size: 16px;" id="printBtn">Print book as PDF</button>
+						
+						<h2>Changelog</h2>
+						<ul>
+							<li><strong>Added Practice Mode!</strong></li>
+							<li>Improved behavior of "Elaborate" tooltip</li>
+							<li>Added options to add individual page and export as PDF</li>
+							<li>Improved a number of inputs</li>
+							<li>Improved display CSS</li>
+						</ul>
+						<p>A.P. 8/29/2024</p>
+					</div>
+					
+					
 			</div>
 		</div>
 		
