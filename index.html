@@ -274,7 +274,7 @@
 			pracButton.addEventListener("mousedown", async function() {
 				const selection = window.getSelection();
 				const selectedText = selection.toString();
-				let pr = `${selectedText} \n\n Create a free-form practice problem using the concepts described in the provided text.`;
+				let pr = `${selectedText} \n\n Create a free-form practice problem using the concepts described in the provided text. Don't include answers or hints in your response- this will be viewed immediately by the student.`;
 				document.getElementById('tab4').click();
 				document.getElementById("question").innerHTML = `<h1>Elaborating...</h1>`;
 				const result = await model.generateContentStream(pr);
