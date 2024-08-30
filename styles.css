@@ -326,4 +326,8 @@ fieldset > button {
 	   position: relative;
 	   width: calc(100%);
    }
+	#content4 {
+		flex-direction: column;
+		
+	}
 }
