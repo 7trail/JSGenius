@@ -104,8 +104,11 @@
 			
 			function fullBook() {
 				let fullText = "";
+				let i = 0;
 				for (const key in bookDict) {
-					fullText += bookDict[key] + "\n\n\n";
+
+					fullText += `Page ${i}: ${key}\n\n` + bookDict[key] + "\n\n\n";
+					i+=1;
 				}
 				fullText = fullText.replace(/<code>.*?<\/code>/gs, '');
 				return fullText;
@@ -213,8 +216,8 @@
 				requestAnimationFrame(() => {
 					const selection = window.getSelection();
 					const text = selection.toString().replace(/\s/g, "");
-					
-					if (!body.textContent.replace(/\s/g, "").includes(text)) {
+					let chat = document.getElementById("chatgohere");
+					if (!(body.textContent.replace(/\s/g, "").includes(text)||chat.textContent.replace(/\s/g, "").includes(text))) {
 						elabTooltip.style.display = "none";
 						return;
 					}
@@ -239,7 +242,7 @@
 			const chatButton = document.getElementById("chatButton");
 			chatButton.addEventListener("click", async function() {
 				let text = document.getElementById("chatInp").value;
-				let pr = `${text}\n\nAnswer the above information. Be thorough and detailed and include at least 500 words.`;
+				let pr = `${text}\n\nAnswer the above information. Be thorough and detailed and include at least 500 words. Refer back to the contents of the below book: \n\n${fullBook()}`;
 				document.getElementById("chatgohere").innerHTML = `<h1>Awaiting response...</h1>`;
 				const result = await model.generateContentStream(pr);
 				let contents = "";
@@ -256,7 +259,7 @@
 			elabButton.addEventListener("mousedown", async function() {
 				const selection = window.getSelection();
 				const selectedText = selection.toString();
-				let pr = `${selectedText} \n\n Elaborate on the above text. Provide details and include at least 500 words. Be thorough.`;
+				let pr = `${selectedText} \n\n Elaborate on the above text. Provide details and include at least 500 words. Be thorough. Refer back to the contents of the below book: \n\n${fullBook()}`;
 				document.getElementById('tab2').click();
 				document.getElementById("chatgohere").innerHTML = `<h1>Elaborating...</h1>`;
 				const result = await model.generateContentStream(pr);
@@ -274,7 +277,7 @@
 			pracButton.addEventListener("mousedown", async function() {
 				const selection = window.getSelection();
 				const selectedText = selection.toString();
-				let pr = `${selectedText} \n\n Create a free-form practice problem using the concepts described in the provided text. Don't include answers or hints in your response- this will be viewed immediately by the student.`;
+				let pr = `${selectedText} \n\n Create a free-form practice problem using the concepts described in the provided text.`;
 				document.getElementById('tab4').click();
 				document.getElementById("question").innerHTML = `<h1>Elaborating...</h1>`;
 				const result = await model.generateContentStream(pr);
@@ -397,13 +400,11 @@
 						
 						<h2>Changelog</h2>
 						<ul>
-							<li><strong>Added Practice Mode!</strong></li>
-							<li>Improved behavior of "Elaborate" tooltip</li>
-							<li>Added options to add individual page and export as PDF</li>
-							<li>Improved a number of inputs</li>
-							<li>Improved display CSS</li>
+							<li>Improved Chat mode prompting. The program now has access to the full textbook when answering chat questions.</li>
+							<li>The tooltip will now appear when highlighting text in the Chat menu</li>
+							<li>Minor UI revisions</li>
 						</ul>
-						<p>A.P. 8/29/2024</p>
+						<p>A.P. 9/03/2024</p>
 					</div>
 					
 					

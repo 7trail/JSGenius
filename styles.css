@@ -247,13 +247,16 @@ label.tab {
 
 #question {
 	background-color: #c2e9ff;
+	border: 2px solid #3299ff;
 	height: 60vh;
 	margin-right: 10px;
 }
 
 #answer {
 	background-color: #ffc2d0;
+	border: 2px solid #ff62d0;
 	height: 60vh;
+	margin-bottom: 10px;
 }
 
 #answerholder {
@@ -326,8 +329,4 @@ fieldset > button {
 	   position: relative;
 	   width: calc(100%);
    }
-	#content4 {
-		flex-direction: column;
-		
-	}
 }
