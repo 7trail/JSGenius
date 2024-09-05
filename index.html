@@ -13,6 +13,9 @@
 		</script>	
 		<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/showdown@2.0.3/dist/showdown.min.js"></script>
 		<link rel="stylesheet" href="styles.css">
+		<link rel="stylesheet" href="styles/default.min.css">
+		<script src="highlight.min.js"></script>
+		<script>hljs.highlightAll();</script>
 	</head>
 	
 	<body>
@@ -20,6 +23,7 @@
 		<!-- Import @google/generative-ai, as shown above. -->
 		<script type="module">
 			import { HarmBlockThreshold, HarmCategory, GoogleGenerativeAI } from "@google/generative-ai";
+
 
 			// Default export is a4 paper, portrait, using millimeters for units
 			// Fetch your API_KEY
@@ -55,12 +59,16 @@
 				"Formal writing"
 			];
 			
-			const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-exp-0827", systemInstruction: "You write textbooks and sections for textbooks and are detailed and informative. You write so beginners can understand, but provide depth and complexity.", safetySettings});
+			var tone = "Professional, detailed, geared towards beginners";
+			const modelId="gemini-1.5-flash-exp-0827"
+			var model = genAI.getGenerativeModel({ model: modelId, systemInstruction: `You write textbooks and sections for textbooks and are ${tone}`, safetySettings});
 			
 			var body;
 			var textbox;
 			var converter = new showdown.Converter();
 			var status;
+
+			
 			
 			var bookDict = {};
 			
@@ -85,6 +93,25 @@
 			  const audio = new Audio(url);
 			  audio.play();
 			}
+
+			function refreshModel() {
+				model = genAI.getGenerativeModel({ model: modelId, systemInstruction: `You write textbooks and sections for textbooks and are ${tone}`, safetySettings});
+			}
+
+			function resetTone() {
+				tone = "Professional, detailed, geared towards beginners";
+				document.getElementById("tone").value = tone;
+			}
+
+			function updateTone() {
+				let v = document.getElementById("tone").value;
+				if (v.trim() == "") {
+					resetTone();
+				}
+				localStorage.setItem("tone",v.trim());
+				tone = v.trim();
+				refreshModel();
+			}
 			
 			function updateListBox() {
 				var select = document.getElementById('pagedict');
@@ -101,6 +128,8 @@
 				bookDict = {};
 				updateListBox();
 			}
+
+			
 			
 			function fullBook() {
 				let fullText = "";
@@ -122,6 +151,7 @@
 			function setPage(key) {
 				window.scrollTo({ top: 0, behavior: 'smooth' });
 				body.innerHTML = bookDict[key];
+				hljs.highlightAll();
 			}
 			
 			async function generateBook() {
@@ -148,7 +178,7 @@
 				for (const tpc of topics) {
 					console.log(tpc);
 					status.textContent = `Writing page ${i}/${topics.length}`;
-					let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative section for a textbook on ${tpc} in ${topic}. Write at LEAST 2000 words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. DO NOT repeat material already covered in previous chapters. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be. Your content should be easy to follow for a newcomer and take the time it needs to cover a concept fully.`;
+					let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative section for a textbook on ${tpc} in ${topic}. Write at LEAST 2000 words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. Prioritize long paragraphs over short lists. DO NOT repeat material already covered in previous chapters. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be. Your content should be easy to follow for a newcomer and take the time it needs to cover a concept fully.`;
 					let page = await generateResponse(pagePrompt);
 					addToBook(tpc,converter.makeHtml(page));
 					i+=1;
@@ -172,6 +202,7 @@
 					depth = 0;
 				}
 				let contents = "";
+				refreshModel();
 				try {
 					console.log(prompt);
 					const result = await model.generateContentStream(prompt);
@@ -196,19 +227,31 @@
 			}
 			
 			window.addEventListener("load", (event) => {
-			  body = document.getElementById("textgohere");
-			  textbox = document.getElementById("inp");
-			  textbox.value = startingPrompts[[Math.floor(Math.random()*startingPrompts.length)]];
-			  status = document.getElementById("status");
-			  document.getElementById("btn").addEventListener("click",generateBook);
-			  document.getElementById("printBtn").addEventListener("click",printPDF);
-			  document.getElementById("newPageButton").addEventListener("click",addPage);
-			  document.getElementById("quantity").value = "5"; 
-			  
-			  document.getElementById('pagedict').addEventListener("change", function() {
-				document.getElementById('tab1').click();
-				setPage(document.getElementById('pagedict').value);
-			  });
+				body = document.getElementById("textgohere");
+				textbox = document.getElementById("inp");
+				textbox.value = startingPrompts[[Math.floor(Math.random()*startingPrompts.length)]];
+				status = document.getElementById("status");
+				document.getElementById("btn").addEventListener("click",generateBook);
+				document.getElementById("printBtn").addEventListener("click",printPDF);
+				document.getElementById("newPageButton").addEventListener("click",addPage);
+				document.getElementById("quantity").value = "5"; 
+				
+				document.getElementById('pagedict').addEventListener("change", function() {
+					document.getElementById('tab1').click();
+					setPage(document.getElementById('pagedict').value);
+				});
+
+				document.getElementById("resetTone").addEventListener("click",resetTone);
+
+				document.getElementById("tone").addEventListener("change", updateTone)
+
+				if (localStorage.getItem("tone") != null) {
+					tone = localStorage.getItem("tone");
+					document.getElementById("tone").value = tone;
+				} else {
+					resetTone();
+				}
+				localStorage.setItem("tone",tone);
 			});
 			
 			const elabTooltip = document.querySelector(".elaborate-tooltip");
@@ -253,6 +296,7 @@
 					document.getElementById("chatgohere").innerHTML = converter.makeHtml(contents);
 				}
 				playSound("noise.wav");
+				hljs.highlightAll();
 			});
 			
 			const elabButton = document.querySelector(".elaborate-button");
@@ -271,6 +315,7 @@
 					document.getElementById("chatgohere").innerHTML = converter.makeHtml(contents);
 				}
 				playSound("noise.wav");
+				hljs.highlightAll();
 			});
 			
 			const pracButton = document.querySelector(".practice-button");
@@ -279,7 +324,7 @@
 				const selectedText = selection.toString();
 				let pr = `${selectedText} \n\n Create a free-form practice problem using the concepts described in the provided text.`;
 				document.getElementById('tab4').click();
-				document.getElementById("question").innerHTML = `<h1>Elaborating...</h1>`;
+				document.getElementById("question").innerHTML = `<h1>Writing Practice Problem...</h1>`;
 				const result = await model.generateContentStream(pr);
 				let contents = "";
 				// Print text as it comes in. This is a deviation from the standard function.
@@ -288,6 +333,7 @@
 					contents += chunkText;
 					document.getElementById("question").innerHTML = converter.makeHtml(contents);
 				}
+				hljs.highlightAll();
 				playSound("noise.wav");
 			});
 			
@@ -296,7 +342,7 @@
 				
 				let text = document.getElementById("question").textContent;
 				let answer = document.getElementById("answerInp").value;
-				if (text.trim() == "" || answer.trim() == "") {
+				if (text.trim() == "" || answer.trim() == "" || text.trim() == "Question") {
 					alert("Uh oh! Make sure you have a question and an answer.");
 					return;
 				}
@@ -310,6 +356,7 @@
 					contents += chunkText;
 					document.getElementById("answer").innerHTML = converter.makeHtml(contents);
 				}
+				hljs.highlightAll();
 				playSound("noise.wav");
 			});
 			
@@ -397,7 +444,14 @@
 					</div>
 					<div class="content3" id="content3">
 						<button class="animBtn" style="width: 25%; font-size: 16px;" id="printBtn">Print book as PDF</button>
-						
+						<br>
+						<h2>Tone Settings</h2>
+						<h3>This defines how the program writes. Leave it alone for default behavior.</h3>
+						<fieldset>
+							
+							<textarea id="tone"></textarea>
+							<button id="resetTone">Reset Tone</button>
+						</fieldset>
 						<h2>Changelog</h2>
 						<ul>
 							<li>Improved Chat mode prompting. The program now has access to the full textbook when answering chat questions.</li>
