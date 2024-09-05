@@ -15,6 +15,8 @@
 		<link rel="stylesheet" href="styles.css">
 		<link rel="stylesheet" href="styles/default.min.css">
 		<script src="highlight.min.js"></script>
+		<script src="skulpt/skulpt.min.js"></script> 
+		<script src="skulpt/skulpt-stdlib.js"></script> 
 		<script>hljs.highlightAll();</script>
 	</head>
 	
@@ -71,6 +73,70 @@
 			
 			
 			var bookDict = {};
+			
+			function getAllPythonElements() {
+				let allPreElements = document.querySelectorAll('pre');
+
+				// Filter <pre> elements that have a <code> child with the class 'python' 
+				// and do not have a <button> child
+				let filteredPreElements = Array.from(allPreElements).filter(pre => {
+					// Check if there is a <code> child with the class 'python'
+					const hasPythonCode = pre.querySelector('code.python') !== null;
+
+					// Check if there is a <button> child
+					const hasButton = pre.querySelector('button') !== null;
+
+					// Return true if there is a <code> child with the class 'python'
+					// and no <button> child
+					return hasPythonCode && !hasButton;
+				});
+				
+				return filteredPreElements;
+			}
+			
+			function runPython(prog) {
+				alert(prog);
+				document.getElementById('output').textContent = "";
+				Sk.configure({
+					output: function(text) { document.getElementById('output').textContent += text; },
+					read: function(x) {
+						if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined)
+							throw "File not found: '" + x + "'";
+						return Sk.builtinFiles["files"][x];
+					}
+				});
+				(Sk.TurtleGraphics || (Sk.TurtleGraphics = {})).target = 'mycanvas';
+	 
+				//var prog = document.getElementById('pythonCode').value;
+				Sk.misceval.asyncToPromise(function() {
+					return Sk.importMainWithBody("<stdin>", false, prog, true);
+				}).then(function(mod) {
+					console.log('Program execution completed successfully');
+				}).catch(function(err) {
+					document.getElementById('output').textContent = err.toString();
+				});
+			}
+			
+			function addRunPythonButtonsToFilteredPreElements() {
+				let fpe = getAllPythonElements();
+				fpe.forEach(pre => {
+					// Create a new button element
+					const button = document.createElement('button');
+					button.textContent = 'Run Python';  // Set the button text
+					button.addEventListener('click', function() {
+						let c = pre.querySelector("code.python");
+						runPython(c.textContent);
+					});  // Attach the click event
+					
+					// Append the button to the <pre> element
+					pre.appendChild(button);
+				});
+			}
+			
+			function updateCodeBlocks() {
+				hljs.highlightAll();
+				addRunPythonButtonsToFilteredPreElements();
+			}
 			
 			function printDiv(txt, title) {
 			  let mywindow = window.open('', 'PRINT', 'height=650,width=900,top=100,left=150');
@@ -151,7 +217,7 @@
 			function setPage(key) {
 				window.scrollTo({ top: 0, behavior: 'smooth' });
 				body.innerHTML = bookDict[key];
-				hljs.highlightAll();
+				updateCodeBlocks();
 			}
 			
 			async function generateBook() {
@@ -178,7 +244,7 @@
 				for (const tpc of topics) {
 					console.log(tpc);
 					status.textContent = `Writing page ${i}/${topics.length}`;
-					let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative section for a textbook on ${tpc} in ${topic}. Write at LEAST 2000 words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. Prioritize long paragraphs over short lists. DO NOT repeat material already covered in previous chapters. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be. Your content should be easy to follow for a newcomer and take the time it needs to cover a concept fully.`;
+					let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative section for a textbook on ${tpc} in ${topic}. Write at LEAST 2000 words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. Don't just write a list with a bunch of one-sentence snippets- write full paragraphs, and MAINTAIN THE STYLE AND STRUCTURE OF THE ABOVE BOOK. DO NOT repeat material already covered in previous chapters. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be. Your content should be easy to follow for a newcomer and take the time it needs to cover a concept fully.`;
 					let page = await generateResponse(pagePrompt);
 					addToBook(tpc,converter.makeHtml(page));
 					i+=1;
@@ -190,7 +256,7 @@
 				let tpc = document.getElementById("newPageInp").value;
 				if (tpc == "") { return; }
 				status.textContent = `Adding page`;
-				let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative section for a textbook on ${tpc}. Write at LEAST 2000 words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. DO NOT repeat material already covered in previous chapters. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be.`;
+				let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative section for a textbook on ${tpc}. Write at LEAST 2000 words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. DO NOT repeat material already covered in previous chapters. Don't just write a list with a bunch of one-sentence snippets- write full paragraphs, and MAINTAIN THE STYLE AND STRUCTURE OF THE ABOVE BOOK. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be.`;
 				let page = await generateResponse(pagePrompt);
 				addToBook(tpc,converter.makeHtml(page));
 				status.textContent = `Done!`;
@@ -257,8 +323,8 @@
 			const elabTooltip = document.querySelector(".elaborate-tooltip");
 			document.addEventListener("mouseup", () => {
 				requestAnimationFrame(() => {
-					const selection = window.getSelection();
-					const text = selection.toString().replace(/\s/g, "");
+					const selection = window.getSelection().replace("Run Python", "");
+					const text = selection.toString().replace(/\s/g, "").replace("Run Python", "");
 					let chat = document.getElementById("chatgohere");
 					if (!(body.textContent.replace(/\s/g, "").includes(text)||chat.textContent.replace(/\s/g, "").includes(text))) {
 						elabTooltip.style.display = "none";
@@ -296,7 +362,7 @@
 					document.getElementById("chatgohere").innerHTML = converter.makeHtml(contents);
 				}
 				playSound("noise.wav");
-				hljs.highlightAll();
+				updateCodeBlocks();
 			});
 			
 			const elabButton = document.querySelector(".elaborate-button");
@@ -315,7 +381,7 @@
 					document.getElementById("chatgohere").innerHTML = converter.makeHtml(contents);
 				}
 				playSound("noise.wav");
-				hljs.highlightAll();
+				updateCodeBlocks();
 			});
 			
 			const pracButton = document.querySelector(".practice-button");
@@ -333,7 +399,7 @@
 					contents += chunkText;
 					document.getElementById("question").innerHTML = converter.makeHtml(contents);
 				}
-				hljs.highlightAll();
+				updateCodeBlocks();
 				playSound("noise.wav");
 			});
 			
@@ -356,7 +422,7 @@
 					contents += chunkText;
 					document.getElementById("answer").innerHTML = converter.makeHtml(contents);
 				}
-				hljs.highlightAll();
+				updateCodeBlocks();
 				playSound("noise.wav");
 			});
 			
@@ -370,6 +436,8 @@
 		</div>
 		<div class="wrapper">
 			<div class="sidebar">
+				<pre id="output"></pre>
+				<div id="mycanvas"></div> 
 				<div class="sections">
 					<div class="section">
 						<div id="fields">
@@ -448,7 +516,7 @@
 						<button class="animBtn" style="width: 25%; font-size: 16px;" id="printBtn">Print book as PDF</button>
 						<br>
 						<h2>Tone Settings</h2>
-						<h3>This defines how the program writes. Leave it alone for default behavior.</h3>
+						<p>This defines how the program writes. Leave it alone for default behavior.</p>
 						<fieldset>
 							
 							<textarea id="tone"></textarea>
@@ -458,9 +526,9 @@
 						<ul>
 							<li><b>Tone settings!</b> You can now customize how the program writes.</li>
 							<li><b>Code highlighting!</b> Code now syntax-highlights as it's displayed on the screen.</li>
-							<li>Further CSS changes, less elements should overflow.</li>
+							<li>Slightly changed layout and formatting.</li>
 						</ul>
-						<p>A.P. 9/04/2024</p>
+						<p>A.P. 9/05/2024</p>
 					</div>
 					
 					
