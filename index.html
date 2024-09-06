@@ -29,7 +29,15 @@
 
 			// Default export is a4 paper, portrait, using millimeters for units
 			// Fetch your API_KEY
-			const API_KEY = "AIzaSyD9xMiW0oSglYPfQh95Rn0TRHpjTZFduaE";
+
+			let api_keys = [
+				"V3JpdHRlbiBieSBBdXN0aW4gUGhpbGxpcHMgQXVnLVNlcCAyMDI0",
+				"AIzaSyD9xMiW0oSglYPfQh95Rn0TRHpjTZFduaE",
+				"VEhJUyBXQVMgTVkgSURFQS4gRmFsbCBvZiAyMDIz",
+				"QWRkaXRpb25hbCBMaWJyYXJpZXMgTGljZW5zZXMgaW5jbHVkZWQ="
+			];
+
+			const API_KEY = api_keys[1];
 
 			// Access your API key (see "Set up your API key" above)
 			const genAI = new GoogleGenerativeAI(API_KEY);
@@ -82,7 +90,28 @@
 			
 			
 			var bookDict = {};
+			var examDict = {};
 			
+			function hasParentWithId(element, id) {
+				// Start with the current element
+				let currentElement = element;
+				
+				// Traverse up the DOM tree
+				while (currentElement) {
+					// Check if the current element has the specified id
+					if (currentElement.id === id) {
+					return true;
+					}
+					
+					// Move to the parent node
+					currentElement = currentElement.parentElement;
+				}
+				
+				// If no parent with the specified id is found, return false
+				return false;
+			}
+
+
 			function getAllPythonElements() {
 				let allPreElements = document.querySelectorAll('pre');
 
@@ -97,7 +126,7 @@
 
 					// Return true if there is a <code> child with the class 'python'
 					// and no <button> child
-					return hasPythonCode && !hasButton;
+					return hasPythonCode && !hasButton && !hasParentWithId("practiceTest");
 				});
 				
 				return filteredPreElements;
@@ -132,13 +161,14 @@
 					// Create a new button element
 					const button = document.createElement('img');
 					button.src = "runCode.png";
+					button.class = "runCode";
 					//button.textContent = 'Run Python';  // Set the button text
 					button.addEventListener('click', function() {
 						let c = pre.querySelector("code.python");
 						let execTooltip = document.querySelector(".execute-tooltip");
 						execTooltip.style.display = 'block';
 						let btnRect = this.getBoundingClientRect();
-						runPython(c.textContent);
+						runPython(c.textContent.trim());
 						execTooltip.style.top = (btnRect.top + window.scrollY + btnRect.height/2 - (execTooltip.offsetHeight / 2))+"px";
 						execTooltip.style.left = (btnRect.left + window.scrollX + this.offsetWidth + 20)+"px";
 					});  // Attach the click event
@@ -169,6 +199,72 @@
 
 			  return true;
 			}
+
+			function generatePracticeHTML(data) {
+				const container = document.getElementById('practiceTest');
+				container.innerHTML = ''; // Clear existing content
+
+				data.forEach((item, index) => {
+					// Create question element
+					const questionElem = document.createElement('div');
+					questionElem.classList.add("practiceExamQuestion");
+					questionElem.innerHTML = converter.makeHtml(item.question);
+
+					// Create answers list
+					/*const ul = document.createElement('select');
+					ul.size = item.answers.length;*/
+					const ul = document.createElement('div');
+					ul.classList.add('answers');
+					let i = 0;
+					let order = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"];
+					item.answers.forEach((answer, i) => {
+						const dv = document.createElement("div");
+						dv.classList.add("wrapper2");
+						const li = document.createElement('input');
+						li.type = "radio";
+						li.name = `question${index}`;
+						li.id = `question${index}-${order[i]}`;
+						li.value = order[i];
+						
+						//li.innerHTML = converter.makeHtml(answer);
+						const label = document.createElement("label");
+						label.htmlFor = `question${index}-${order[i]}`;
+						label.innerHTML = converter.makeHtml(answer);
+						
+						ul.appendChild(dv);
+						dv.appendChild(li);
+						dv.appendChild(label);
+						i+=1;
+					});
+
+					// Append question and answers to the container
+					container.appendChild(questionElem);
+					questionElem.appendChild(ul);
+
+					updateCodeBlocks();
+				});
+			}
+
+			function checkPracticeExam() {
+				let questions = document.getElementById("practiceTest").querySelectorAll("div.practiceExamQuestion");
+				let i = 0;
+				questions.forEach((element,index) => {
+					console.log(examDict[i].correct_answer);
+					let sel = document.querySelector(`input[name="question${index}"]:checked`);
+					let correct = (sel.value != null) && examDict[i].correct_answer == sel.value;
+					element.classList.remove("correct");
+					element.classList.remove("incorrect");
+					element.classList.add(correct ? "correct" : "incorrect");
+
+					if (!correct && element.querySelector(".showRightAnswer") == null) {
+						const b = document.createElement("b");
+						b.classList.add("showRightAnswer");
+						b.textContent = "Correct Answer: " + examDict[i].correct_answer;
+						element.appendChild(b);
+					};
+					i+=1;
+				});
+			}
 			
 			function playSound(url) {
 			  const audio = new Audio(url);
@@ -180,7 +276,7 @@
 			}
 
 			function resetTone() {
-				tone = "Professional, detailed, geared towards beginners";
+				tone = "Professional, detailed";
 				document.getElementById("tone").value = tone;
 			}
 
@@ -207,6 +303,7 @@
 			
 			function resetBook() {
 				bookDict = {};
+				closeCodeTooltip();
 				updateListBox();
 			}
 
@@ -233,17 +330,19 @@
 				window.scrollTo({ top: 0, behavior: 'smooth' });
 				body.innerHTML = bookDict[key];
 				updateCodeBlocks();
+				closeCodeTooltip();
 			}
 			
 			async function generateBook() {
 				let topic = textbox.value.trim();
+				let complexity = document.getElementById("writeComplexity").value;
 				if (topic == "") {
 					alert("Please provide a prompt! Example: How to write Python code");
 					return;
 				}
 				resetBook();
 				
-				let tpcPrompt = `Write a list of ${document.getElementById("quantity").value} topics relating to ${topic}. Do not include a title or header for the list or any extra newlines. Only include the list elements with numbers. Use ONLY ASCII-safe characters. The first page should ALWAYS be a page talking broadly about the concept. Do not pick redundant topics. Do not provide anything in your response other than the list. Make sure each page covers a different aspect of ${topic}. Do not describe or provide detail to each topic here, only list them. If you include code examples, do not include their output.`;
+				let tpcPrompt = `Write a list of ${complexity} ${document.getElementById("quantity").value} topics relating to ${topic}. Do not include a title or header for the list or any extra newlines. Only include the list elements with numbers. Use ONLY ASCII-safe characters. The first page should ALWAYS be a page talking broadly about the concept. Do not pick redundant topics. Do not provide anything in your response other than the list. Make sure each page covers a different aspect of ${topic}. Do not describe or provide detail to each topic here, only list them. If you include code examples, do not include their output.`;
 				console.log(tpcPrompt);
 				status.textContent = "Creating list of pages";
 				let topicResponse = await generateResponse(tpcPrompt);
@@ -255,29 +354,57 @@
 				}
 				addToBook("Table of Contents", topicFinal);
 				setPage("Table of Contents");
+
+				
+				let pageLength = document.getElementById("writeLength").value;
+
 				let i = 1;
 				for (const tpc of topics) {
 					console.log(tpc);
 					status.textContent = `Writing page ${i}/${topics.length}`;
-					let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative section for a textbook on ${tpc} in ${topic}. Write at LEAST ${lengthDict[document.getElementById("writeLength").value]} words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. Don't just write a list with a bunch of one-sentence snippets- write full paragraphs, and MAINTAIN THE STYLE AND STRUCTURE OF THE ABOVE BOOK. DO NOT repeat material already covered in previous chapters. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be. If you include blocks of code in your response, do not include their output. A button built into the textbook viewer will show their output for you.`;
+					let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative section for a textbook on ${tpc} in ${topic} geared towards ${complexity}. Write at LEAST ${lengthDict[pageLength]} words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. Don't just write a list with a bunch of one-sentence snippets- write full paragraphs, and MAINTAIN THE STYLE AND STRUCTURE OF THE ABOVE BOOK. DO NOT repeat material already covered in previous chapters. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be. If you include blocks of code in your response, do not include their output. A button built into the textbook viewer will show their output for you.`;
 					let page = await generateResponse(pagePrompt);
 					addToBook(tpc,converter.makeHtml(page));
 					i+=1;
 				}
 				status.textContent = "Done!";
 			}
+
+			async function generatePracticeExam(source, qCount, difficulty) {
+				/*let prompt = fullBook() + `\n\nAbove is the full book. Write a multiple-choice practice test for the above text with 10 questions. Format each question like this, following all newline procedures as I am:
+
+{ "question": "This is where the question goes", "answers":["A: This is Answer A","B: This is answer B"]},`;*/
+				let prompt = source + `\n\nWrite a ${difficulty} multiple-choice practice test for the above content with ${qCount} questions. Do not put "\`\`\`json" at the start of the response, nor "\`\`\`" at the end. Format each question like this, following all newline procedures as I am:
+
+{ "question": "This is where the question goes", "answers":["A: This is Answer A","B: This is answer B"], "correct_answer": "A"},
+ 
+Make sure not to put a comma after the last question.`;
+				status.textContent = "Creating exam";
+				let response = await generateResponse(prompt);
+				response = "["+response+"]";
+				console.log(response);
+				let json = JSON.parse(response);
+				examDict = json;
+				console.log(examDict);
+				status.textContent = "Done!";
+				generatePracticeHTML(examDict);
+				document.getElementById("checkPracticeExam").style.display = "block";
+			}
 			
 			async function addPage() {
 				let tpc = document.getElementById("newPageInp").value;
+				let complexity = document.getElementById("writeComplexity").value;
+				let pageLength = document.getElementById("writeLength").value;
 				if (tpc == "") { return; }
 				status.textContent = `Adding page`;
-				let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative section for a textbook on ${tpc}. Write at LEAST ${lengthDict[document.getElementById("writeLength").value]} words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. DO NOT repeat material already covered in previous chapters. Don't just write a list with a bunch of one-sentence snippets- write full paragraphs, and MAINTAIN THE STYLE AND STRUCTURE OF THE ABOVE BOOK. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be.`;
+				let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative section for a textbook on ${tpc} geared towards ${complexity}. Write at LEAST ${lengthDict[pageLength]} words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. DO NOT repeat material already covered in previous chapters. Don't just write a list with a bunch of one-sentence snippets- write full paragraphs, and MAINTAIN THE STYLE AND STRUCTURE OF THE ABOVE BOOK. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be.`;
 				let page = await generateResponse(pagePrompt);
 				addToBook(tpc,converter.makeHtml(page));
 				status.textContent = `Done!`;
 			}
 			
 			async function generateResponse(prompt, depth) {
+				closeCodeTooltip();
 				//const prompt = textbox.value;
 				if (depth == null) {
 					depth = 0;
@@ -306,6 +433,10 @@
 				
 				return contents;
 			}
+
+			function closeCodeTooltip() {
+				document.querySelector(".execute-tooltip").style.display = "none";
+			}
 			
 			window.addEventListener("load", (event) => {
 				body = document.getElementById("textgohere");
@@ -315,9 +446,17 @@
 				document.getElementById("btn").addEventListener("click",generateBook);
 				document.getElementById("printBtn").addEventListener("click",printPDF);
 				document.getElementById("newPageButton").addEventListener("click",addPage);
+				document.getElementById("generatePracticeExam").addEventListener("click",async function() {
+					if (Object.keys(bookDict).length == 0) {
+						alert("Please generate a book first!");
+						return;
+					}
+					await generatePracticeExam(fullBook(),document.getElementById("examLength").value,document.getElementById("examDifficulty").value);
+				});
+				document.getElementById("checkPracticeExamBtn").addEventListener("click",checkPracticeExam);
 				document.getElementById("quantity").value = "5"; 
 
-				document.querySelector(".close-button").addEventListener("click",function() { document.querySelector(".execute-tooltip").style.display = "none"; });
+				document.querySelector(".close-button").addEventListener("click", closeCodeTooltip);
 				
 				document.getElementById('pagedict').addEventListener("change", function() {
 					document.getElementById('tab1').click();
@@ -339,6 +478,42 @@
 
 				localStorage.setItem("length",document.getElementById("writeLength").value);
 
+				document.getElementById("writeComplexity").addEventListener("change", function() {
+					localStorage.setItem("complexity",document.getElementById("writeComplexity").value);
+				});
+
+				if (localStorage.getItem("complexity")!= null) {
+					document.getElementById("writeComplexity").value = localStorage.getItem("complexity");
+				} else {
+					document.getElementById("writeComplexity").value = "Beginner";
+				}
+
+				localStorage.setItem("complexity",document.getElementById("writeComplexity").value);
+
+				document.getElementById("examLength").addEventListener("change", function() {
+					localStorage.setItem("examLength",document.getElementById("examLength").value);
+				});
+
+				if (localStorage.getItem("examLength")!= null) {
+					document.getElementById("examLength").value = localStorage.getItem("examLength");
+				} else {
+					document.getElementById("examLength").value = "10";
+				}
+
+				localStorage.setItem("examLength",document.getElementById("examLength").value);
+
+				document.getElementById("examDifficulty").addEventListener("change", function() {
+					localStorage.setItem("examDifficulty",document.getElementById("examDifficulty").value);
+				});
+
+				if (localStorage.getItem("examDifficulty")!= null) {
+					document.getElementById("examDifficulty").value = localStorage.getItem("examDifficulty");
+				} else {
+					document.getElementById("examDifficulty").value = "medium";
+				}
+
+				localStorage.setItem("examDifficulty",document.getElementById("examDifficulty").value);
+
 				if (localStorage.getItem("tone") != null) {
 					tone = localStorage.getItem("tone");
 					document.getElementById("tone").value = tone;
@@ -354,7 +529,8 @@
 					const selection = window.getSelection();
 					const text = selection.toString().replace(/\s/g, "");
 					let chat = document.getElementById("chatgohere");
-					if (!(body.textContent.replace(/\s/g, "").includes(text)||chat.textContent.replace(/\s/g, "").includes(text))) {
+					let pTest = document.getElementById("practiceTest");
+					if (!(body.textContent.replace(/\s/g, "").includes(text)||chat.textContent.replace(/\s/g, "").includes(text)|pTest.textContent.replace(/\s/g, "").includes(text))) {
 						elabTooltip.style.display = "none";
 						return;
 					}
@@ -365,7 +541,7 @@
 					}
 					
 					const rect = selection.getRangeAt(0).getBoundingClientRect();
-					elabTooltip.style.display = 'block';
+					elabTooltip.style.display = 'flex';
 					elabTooltip.style.left = `${rect.left + rect.width/2 - elabTooltip.clientWidth/2}px`;
 					elabTooltip.style.top = `${rect.top - elabTooltip.clientHeight + window.scrollY}px`;
 				});
@@ -379,8 +555,10 @@
 			const chatButton = document.getElementById("chatButton");
 			chatButton.addEventListener("click", async function() {
 				let text = document.getElementById("chatInp").value;
-				let pr = `${text}\n\nAnswer the above information. Be thorough and detailed and include at least ${lengthDict[document.getElementById("writeLength").value]} words. Refer back to the contents of the below book: \n\n${fullBook()}`;
+				let lastChat = document.getElementById("chatgohere").textContent;
+				let pr = `${text}\n\nAnswer the above information. Be thorough and detailed and include at least ${lengthDict[document.getElementById("writeLength").value]} words. Refer back to the contents of the below book and the prior chat: BOOK CONTENTS: \n\n${fullBook()} \n\n CHAT CONTENTS: \n\n${lastChat}`;
 				document.getElementById("chatgohere").innerHTML = `<h1>Awaiting response...</h1>`;
+				window.scrollTo({ top: 0, behavior: 'smooth' });
 				const result = await model.generateContentStream(pr);
 				let contents = "";
 				// Print text as it comes in. This is a deviation from the standard function.
@@ -400,6 +578,7 @@
 				let pr = `${selectedText} \n\n Elaborate on the above text. Provide details and include at least ${lengthDict[document.getElementById("writeLength").value]} words. Be thorough. Refer back to the contents of the below book: \n\n${fullBook()}`;
 				document.getElementById('tab2').click();
 				document.getElementById("chatgohere").innerHTML = `<h1>Elaborating...</h1>`;
+				window.scrollTo({ top: 0, behavior: 'smooth' });
 				const result = await model.generateContentStream(pr);
 				let contents = "";
 				// Print text as it comes in. This is a deviation from the standard function.
@@ -419,6 +598,7 @@
 				let pr = `${selectedText} \n\n Create a free-form practice problem using the concepts described in the provided text. Don't include statements about what the question will develop- only include the instructions, and DO NOT include the answer.`;
 				document.getElementById('tab4').click();
 				document.getElementById("question").innerHTML = `<h1>Writing Practice Problem...</h1>`;
+				window.scrollTo({ top: 0, behavior: 'smooth' });
 				const result = await model.generateContentStream(pr);
 				let contents = "";
 				// Print text as it comes in. This is a deviation from the standard function.
@@ -429,6 +609,16 @@
 				}
 				updateCodeBlocks();
 				playSound("noise.wav");
+			});
+
+			const testButton = document.querySelector(".test-button");
+			testButton.addEventListener("mousedown", async function() {
+				const selection = window.getSelection();
+				const selectedText = selection.toString();
+				document.getElementById('tab5').click();
+				window.scrollTo({ top: 0, behavior: 'smooth' });
+				await generatePracticeExam(selectedText,"5","medium");
+				updateCodeBlocks();
 			});
 			
 			const answerButton = document.getElementById("answerButton");
@@ -442,6 +632,7 @@
 				}
 				let pr = `${text}\n\n\n This is a practice problem. Below is what I answered: \n\n\n ${answer} \n\n Provide feedback on my answer. Tell me if it is correct or not, and how I can further learn.`;
 				document.getElementById("answer").innerHTML = `<h1>Awaiting response...</h1>`;
+				window.scrollTo({ top: 0, behavior: 'smooth' });
 				const result = await model.generateContentStream(pr);
 				let contents = "";
 				// Print text as it comes in. This is a deviation from the standard function.
@@ -460,7 +651,7 @@
 			
 		</script>
 		<div class="elaborate-tooltip tooltip">
-			<div class="elaborate-button">Elaborate</div><div class="practice-button">Practice</div>
+			<div class="elaborate-button">Elaborate</div><div class="practice-button">Practice</div><div class="test-button">Pop Quiz</div>
 		</div>
 		<div class="execute-tooltip tooltip">
 			<button class="close-button">Close</button>
@@ -507,6 +698,8 @@
 					<label class="tab" for="tab2">Chat</label>
 					<input type="radio" name="tab" id="tab4">
 					<label class="tab" for="tab4">Practice</label>
+					<input type="radio" name="tab" id="tab5">
+					<label class="tab" for="tab5">Exam</label>
 					<input type="radio" name="tab" id="tab3">
 					<label class="tab" for="tab3">Options</label>
 					<div class="content1" id="content1">
@@ -519,7 +712,7 @@
 							<fieldset>
 								<textarea rows="5" style="width: 80%; resize:none;" placeholder="Your question goes here!" id="chatInp"></textarea>
 								<br>
-								<button id="chatButton">Ask!</button>
+								<button class = "animBtn" id="chatButton">Ask!</button>
 							</fieldset>
 						</div>
 						<br>
@@ -543,6 +736,34 @@
 							</fieldset>
 						</div>
 					</div>
+					<div class="content5" id="content5">
+						<div id="examHeader">
+							<h1>Practice Exam</h1>
+							<p>Content from all pages of your book will appear here. Get ready!</p>
+							<div class="wrapper2">
+								<select id="examLength" style = "flex-grow:1;" size="4">
+									<option value="5">5 Questions</option>
+									<option value="10">10 Questions</option>
+									<option value="15">15 Questions</option>
+									<option value="20">20 Questions</option>
+								</select>
+								<select id="examDifficulty" style = "flex-grow:1;" size="4">
+									<option value="easy">Easy :)</option>
+									<option value="medium">Medium :\</option>
+									<option value="hard">Hard :(</option>
+									<option value="impossible">Impossible >:(</option>
+								</select>
+							</div>
+							<br>
+							<button class="animBtn2" id="generatePracticeExam">Generate Exam</button>
+						</div>
+						<div id="practiceTest">
+
+						</div>
+						<div id="checkPracticeExam">
+							<button id="checkPracticeExamBtn">Check Exam</button>
+						</div>
+					</div>
 					<div class="content3" id="content3">
 						<button class="animBtn" style="width: 25%; font-size: 16px;" id="printBtn">Print book as PDF</button>
 						<br>
@@ -552,21 +773,36 @@
 							<textarea id="tone"></textarea>
 							<button id="resetTone">Reset Tone</button>
 						</fieldset>
-						<p>How long should the AI write?</p>
-						<select id="writeLength" size="4">
-							<option value="Short">Short - 250/page</option>
-							<option value="Medium">Medium - 500/page</option>
-							<option value="Long">Long - 1000/page</option>
-							<option value="Very Long">Very Long - 2000/page</option>
-						</select>
+						<div class="wrapper2" style="border: 2px solid black;">
+							<div style="flex-grow:1; padding: 10px;">
+								<p>How long would you like your pages?</p>
+								<select id="writeLength" size="4">
+									<option value="Short">Short - 250/page</option>
+									<option value="Medium">Medium - 500/page</option>
+									<option value="Long">Long - 1000/page</option>
+									<option value="Very Long">Very Long - 2000/page</option>
+								</select>
+							</div>
+							<div style="flex-grow:1; padding: 10px;">
+								<p>Who would you like your pages geared towards?</p>
+								<select id="writeComplexity" size="4">
+									<option value="Beginner">Beginner</option>
+									<option value="Intermediate">Intermediate</option>
+									<option value="Advanced">Advanced</option>
+									<option value="Highly Advanced, Expert">Professional</option>
+								</select>
+							</div>
+						</div>
 						<h2>Changelog</h2>
 						<ul>
-							<li><b>Python execution!</b> Python code will now be automatically detected and can be run within the program.</li>
-							<li><b>Customization!</b> The writer can now be further customized to modify the length of each generated page.</li>
-							<li>Changed prompting.</li>
-							<li>Slightly changed layout and formatting.</li>
+							<li><b>Practice exams!</b> You can now create tailored quizzes to test your knowledge. It auto-grades them too!</li>
+							<li><b>More Customization!</b> You can further adjust the writing style to match a particular skill level.</li>
+							<li>Changed prompting even more.</li>
+							<li>Chat mode now has access to the last message sent over chat. This will be expanded with future changes to further improve usability.</li>
+							<li>Tooltip behavior has been modified to display horizontally rather than vertically, and distinguish between options more clearly.</li>
+							<li>UI and usability improvements across the board.</li>
 						</ul>
-						<p>A.P. 9/05/2024</p>
+						<p>A.P. 9/06/2024</p>
 					</div>
 					
 					

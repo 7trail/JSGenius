@@ -75,7 +75,9 @@
 	z-index:15;
 }
 
-
+.runCode {
+	cursor: pointer;
+}
 
 
 #mycanvas {
@@ -116,6 +118,7 @@
 	border-color: #111 transparent transparent transparent;
 	position: absolute;
 	left:50%;
+	bottom: -10px;
 	transform: translateX(-50%);
 }
 
@@ -125,13 +128,18 @@
 	padding: 5px;
 }
 
-.elaborate-button, .practice-button {
+.elaborate-button, .practice-button, .test-button {
 	font-size: 14px;
 	padding: 5px 10px;
 	cursor: pointer;
 }
 
-.elaborate-button:hover, .practice-button:hover {
+.practice-button {
+	border-left: 1px solid white;
+	border-right: 1px solid white;
+}
+
+.elaborate-button:hover, .practice-button:hover, .test-button:hover {
 	background: #333;
 }
 
@@ -232,7 +240,8 @@ pre > code {
 .content1,
 .content2,
 .content3,
-.content4 {
+.content4,
+.content5 {
     display: none;
     padding: 20px;
     border-top: 2px solid #999999;
@@ -242,6 +251,12 @@ input[type='radio'] {
     width: 0;
     height: 0;
     opacity: 0;
+}
+
+.content5 input[type="radio"] {
+	width:auto;
+	height:auto;
+	opacity:1;
 }
 
 label.tab {
@@ -273,6 +288,10 @@ label.tab {
     border-color: #999999;
 }
 
+#tab5:checked+label {
+    border-color: #999999;
+}
+
 #tab1:checked~.content1 {
     display: block;
 }
@@ -289,11 +308,64 @@ label.tab {
     display: flex;
 }
 
+#tab5:checked~.content5 {
+    display: block;
+}
+
 #content4 {
 	flex-direction: row;
 	width: 100%;
 	box-sizing: border-box;
 	
+}
+
+
+
+#checkPracticeExam {
+	display:none;
+}
+
+#practiceTest div.practiceExamQuestion {
+	margin: 10px auto;
+	padding: 0 10px 5px 10px;
+	border: 2px solid lightgray;
+	border-radius: 10px;
+	box-shadow: 0px 0px 15px gray;
+	
+}
+
+#examHeader {
+	text-align: center;
+	margin-bottom: 10px;
+	background-color: #dddddd;
+	border-radius: 10px;
+	padding: 10px;
+}
+
+#examHeader h1 {
+	margin:0;
+}
+
+.content5 button {
+	margin: 0;
+	font-size: 16px;
+	width: 150px;
+	height: 50px;
+}
+
+.practiceExamQuestion select {
+	border-radius: 10px;
+	overflow-y:auto;
+}
+
+.practiceExamQuestion.correct {
+	background-color: #aaffaa;
+	border-color: #88ff88;
+}
+
+.practiceExamQuestion.incorrect {
+	background-color: #ffaaaa;
+	border-color: #ff8888;
 }
 
 #question {
