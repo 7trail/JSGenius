@@ -54,14 +54,59 @@
 	
 }
 
-.elaborate-tooltip {
+.tooltip {
 	position: absolute;
-	z-index: 10;
-	background: #111;
-	border-radius: 5px;
-	padding: 0 10px;
 	color: white;
+	padding: 0 10px;
+	background: #111;
+}
+
+.execute-tooltip {
+	border-radius: 10px;
+	z-index: 11;
 	display:none;
+}
+
+.close-button {
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	cursor: pointer;
+	z-index:15;
+}
+
+
+
+
+#mycanvas {
+	background-color: white;
+	border-radius: 10px;
+	display:block;
+	margin: 5px auto;
+}
+
+.execute-tooltip > #output {
+	padding: 5px;
+	border-radius: 10px;
+	width: 400px;
+	max-height: 200px;
+	overflow-y: scroll;
+	overflow-x: scroll;
+	background: #222;
+	display: block;
+	margin: 5px auto;
+}
+
+.execute-tooltip img {
+	
+	cursor: pointer;
+}
+
+.elaborate-tooltip {
+	display:none;
+	border-radius: 5px;
+	
+	z-index: 10;
 }
 
 .elaborate-tooltip::after {
@@ -74,7 +119,7 @@
 	transform: translateX(-50%);
 }
 
-pre {
+.wrapper pre {
 	background-color: #eee;
 	border-radius: 10px;
 	padding: 5px;

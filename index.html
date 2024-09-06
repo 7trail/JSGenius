@@ -58,8 +58,17 @@
 				"Introductory Algebra",
 				"Basics of Cooking",
 				"First steps in C++",
-				"Formal writing"
+				"Formal writing",
+				"Marine biology",
+				"Advanced philosophy"
 			];
+
+			const lengthDict = {
+				"Short": "250",
+				"Medium": "500",
+				"Long": "1000",
+				"Very Long": "2000"
+			};
 			
 			var tone = "Professional, detailed, geared towards beginners";
 			const modelId="gemini-1.5-flash-exp-0827"
@@ -84,7 +93,7 @@
 					const hasPythonCode = pre.querySelector('code.python') !== null;
 
 					// Check if there is a <button> child
-					const hasButton = pre.querySelector('button') !== null;
+					const hasButton = pre.querySelector('img') !== null;
 
 					// Return true if there is a <code> child with the class 'python'
 					// and no <button> child
@@ -95,7 +104,7 @@
 			}
 			
 			function runPython(prog) {
-				alert(prog);
+				//alert(prog);
 				document.getElementById('output').textContent = "";
 				Sk.configure({
 					output: function(text) { document.getElementById('output').textContent += text; },
@@ -121,11 +130,17 @@
 				let fpe = getAllPythonElements();
 				fpe.forEach(pre => {
 					// Create a new button element
-					const button = document.createElement('button');
-					button.textContent = 'Run Python';  // Set the button text
+					const button = document.createElement('img');
+					button.src = "runCode.png";
+					//button.textContent = 'Run Python';  // Set the button text
 					button.addEventListener('click', function() {
 						let c = pre.querySelector("code.python");
+						let execTooltip = document.querySelector(".execute-tooltip");
+						execTooltip.style.display = 'block';
+						let btnRect = this.getBoundingClientRect();
 						runPython(c.textContent);
+						execTooltip.style.top = (btnRect.top + window.scrollY + btnRect.height/2 - (execTooltip.offsetHeight / 2))+"px";
+						execTooltip.style.left = (btnRect.left + window.scrollX + this.offsetWidth + 20)+"px";
 					});  // Attach the click event
 					
 					// Append the button to the <pre> element
@@ -228,7 +243,7 @@
 				}
 				resetBook();
 				
-				let tpcPrompt = `Write a list of ${document.getElementById("quantity").value} topics relating to ${topic}. Do not include a title or header for the list or any extra newlines. Only include the list elements with numbers. Use ONLY ASCII-safe characters. The first page should ALWAYS be a page talking broadly about the concept. Do not pick redundant topics. Do not provide anything in your response other than the list. Make sure each page covers a different aspect of ${topic}. Do not describe or provide detail to each topic here, only list them.`;
+				let tpcPrompt = `Write a list of ${document.getElementById("quantity").value} topics relating to ${topic}. Do not include a title or header for the list or any extra newlines. Only include the list elements with numbers. Use ONLY ASCII-safe characters. The first page should ALWAYS be a page talking broadly about the concept. Do not pick redundant topics. Do not provide anything in your response other than the list. Make sure each page covers a different aspect of ${topic}. Do not describe or provide detail to each topic here, only list them. If you include code examples, do not include their output.`;
 				console.log(tpcPrompt);
 				status.textContent = "Creating list of pages";
 				let topicResponse = await generateResponse(tpcPrompt);
@@ -244,7 +259,7 @@
 				for (const tpc of topics) {
 					console.log(tpc);
 					status.textContent = `Writing page ${i}/${topics.length}`;
-					let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative section for a textbook on ${tpc} in ${topic}. Write at LEAST 2000 words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. Don't just write a list with a bunch of one-sentence snippets- write full paragraphs, and MAINTAIN THE STYLE AND STRUCTURE OF THE ABOVE BOOK. DO NOT repeat material already covered in previous chapters. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be. Your content should be easy to follow for a newcomer and take the time it needs to cover a concept fully.`;
+					let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative section for a textbook on ${tpc} in ${topic}. Write at LEAST ${lengthDict[document.getElementById("writeLength").value]} words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. Don't just write a list with a bunch of one-sentence snippets- write full paragraphs, and MAINTAIN THE STYLE AND STRUCTURE OF THE ABOVE BOOK. DO NOT repeat material already covered in previous chapters. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be. If you include blocks of code in your response, do not include their output. A button built into the textbook viewer will show their output for you.`;
 					let page = await generateResponse(pagePrompt);
 					addToBook(tpc,converter.makeHtml(page));
 					i+=1;
@@ -256,7 +271,7 @@
 				let tpc = document.getElementById("newPageInp").value;
 				if (tpc == "") { return; }
 				status.textContent = `Adding page`;
-				let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative section for a textbook on ${tpc}. Write at LEAST 2000 words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. DO NOT repeat material already covered in previous chapters. Don't just write a list with a bunch of one-sentence snippets- write full paragraphs, and MAINTAIN THE STYLE AND STRUCTURE OF THE ABOVE BOOK. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be.`;
+				let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative section for a textbook on ${tpc}. Write at LEAST ${lengthDict[document.getElementById("writeLength").value]} words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. DO NOT repeat material already covered in previous chapters. Don't just write a list with a bunch of one-sentence snippets- write full paragraphs, and MAINTAIN THE STYLE AND STRUCTURE OF THE ABOVE BOOK. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be.`;
 				let page = await generateResponse(pagePrompt);
 				addToBook(tpc,converter.makeHtml(page));
 				status.textContent = `Done!`;
@@ -301,6 +316,8 @@
 				document.getElementById("printBtn").addEventListener("click",printPDF);
 				document.getElementById("newPageButton").addEventListener("click",addPage);
 				document.getElementById("quantity").value = "5"; 
+
+				document.querySelector(".close-button").addEventListener("click",function() { document.querySelector(".execute-tooltip").style.display = "none"; });
 				
 				document.getElementById('pagedict').addEventListener("change", function() {
 					document.getElementById('tab1').click();
@@ -309,7 +326,18 @@
 
 				document.getElementById("resetTone").addEventListener("click",resetTone);
 
-				document.getElementById("tone").addEventListener("change", updateTone)
+				document.getElementById("tone").addEventListener("change", updateTone);
+				document.getElementById("writeLength").addEventListener("change", function() {
+					localStorage.setItem("length",document.getElementById("writeLength").value);
+				});
+
+				if (localStorage.getItem("length")!= null) {
+					document.getElementById("writeLength").value = localStorage.getItem("length");
+				} else {
+					document.getElementById("writeLength").value = "Very Long";
+				}
+
+				localStorage.setItem("length",document.getElementById("writeLength").value);
 
 				if (localStorage.getItem("tone") != null) {
 					tone = localStorage.getItem("tone");
@@ -323,8 +351,8 @@
 			const elabTooltip = document.querySelector(".elaborate-tooltip");
 			document.addEventListener("mouseup", () => {
 				requestAnimationFrame(() => {
-					const selection = window.getSelection().replace("Run Python", "");
-					const text = selection.toString().replace(/\s/g, "").replace("Run Python", "");
+					const selection = window.getSelection();
+					const text = selection.toString().replace(/\s/g, "");
 					let chat = document.getElementById("chatgohere");
 					if (!(body.textContent.replace(/\s/g, "").includes(text)||chat.textContent.replace(/\s/g, "").includes(text))) {
 						elabTooltip.style.display = "none";
@@ -351,7 +379,7 @@
 			const chatButton = document.getElementById("chatButton");
 			chatButton.addEventListener("click", async function() {
 				let text = document.getElementById("chatInp").value;
-				let pr = `${text}\n\nAnswer the above information. Be thorough and detailed and include at least 500 words. Refer back to the contents of the below book: \n\n${fullBook()}`;
+				let pr = `${text}\n\nAnswer the above information. Be thorough and detailed and include at least ${lengthDict[document.getElementById("writeLength").value]} words. Refer back to the contents of the below book: \n\n${fullBook()}`;
 				document.getElementById("chatgohere").innerHTML = `<h1>Awaiting response...</h1>`;
 				const result = await model.generateContentStream(pr);
 				let contents = "";
@@ -369,7 +397,7 @@
 			elabButton.addEventListener("mousedown", async function() {
 				const selection = window.getSelection();
 				const selectedText = selection.toString();
-				let pr = `${selectedText} \n\n Elaborate on the above text. Provide details and include at least 500 words. Be thorough. Refer back to the contents of the below book: \n\n${fullBook()}`;
+				let pr = `${selectedText} \n\n Elaborate on the above text. Provide details and include at least ${lengthDict[document.getElementById("writeLength").value]} words. Be thorough. Refer back to the contents of the below book: \n\n${fullBook()}`;
 				document.getElementById('tab2').click();
 				document.getElementById("chatgohere").innerHTML = `<h1>Elaborating...</h1>`;
 				const result = await model.generateContentStream(pr);
@@ -388,7 +416,7 @@
 			pracButton.addEventListener("mousedown", async function() {
 				const selection = window.getSelection();
 				const selectedText = selection.toString();
-				let pr = `${selectedText} \n\n Create a free-form practice problem using the concepts described in the provided text.`;
+				let pr = `${selectedText} \n\n Create a free-form practice problem using the concepts described in the provided text. Don't include statements about what the question will develop- only include the instructions, and DO NOT include the answer.`;
 				document.getElementById('tab4').click();
 				document.getElementById("question").innerHTML = `<h1>Writing Practice Problem...</h1>`;
 				const result = await model.generateContentStream(pr);
@@ -431,13 +459,16 @@
 			}
 			
 		</script>
-		<div class="elaborate-tooltip">
+		<div class="elaborate-tooltip tooltip">
 			<div class="elaborate-button">Elaborate</div><div class="practice-button">Practice</div>
+		</div>
+		<div class="execute-tooltip tooltip">
+			<button class="close-button">Close</button>
+			<pre id="output"></pre>
+			<div id="mycanvas" width="350" height="350"></div> 
 		</div>
 		<div class="wrapper">
 			<div class="sidebar">
-				<pre id="output"></pre>
-				<div id="mycanvas"></div> 
 				<div class="sections">
 					<div class="section">
 						<div id="fields">
@@ -515,17 +546,24 @@
 					<div class="content3" id="content3">
 						<button class="animBtn" style="width: 25%; font-size: 16px;" id="printBtn">Print book as PDF</button>
 						<br>
-						<h2>Tone Settings</h2>
+						<h2>Writing Settings</h2>
 						<p>This defines how the program writes. Leave it alone for default behavior.</p>
 						<fieldset>
-							
 							<textarea id="tone"></textarea>
 							<button id="resetTone">Reset Tone</button>
 						</fieldset>
+						<p>How long should the AI write?</p>
+						<select id="writeLength" size="4">
+							<option value="Short">Short - 250/page</option>
+							<option value="Medium">Medium - 500/page</option>
+							<option value="Long">Long - 1000/page</option>
+							<option value="Very Long">Very Long - 2000/page</option>
+						</select>
 						<h2>Changelog</h2>
 						<ul>
-							<li><b>Tone settings!</b> You can now customize how the program writes.</li>
-							<li><b>Code highlighting!</b> Code now syntax-highlights as it's displayed on the screen.</li>
+							<li><b>Python execution!</b> Python code will now be automatically detected and can be run within the program.</li>
+							<li><b>Customization!</b> The writer can now be further customized to modify the length of each generated page.</li>
+							<li>Changed prompting.</li>
 							<li>Slightly changed layout and formatting.</li>
 						</ul>
 						<p>A.P. 9/05/2024</p>
