@@ -17,7 +17,9 @@
 		<script src="highlight.min.js"></script>
 		<script src="skulpt/skulpt.min.js"></script> 
 		<script src="skulpt/skulpt-stdlib.js"></script> 
-		<script>hljs.highlightAll();</script>
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
 	</head>
 	
 	<body>
@@ -92,6 +94,27 @@
 			var bookDict = {};
 			var examDict = {};
 			
+			let flashcards = [];
+            let currentCardIndex = 0;
+
+            function displayFlashcard(index) {
+                if (flashcards.length === 0) {
+                    document.getElementById("flashcard-front").innerText = "No flashcards yet. Generate your book first!";
+                    document.getElementById("flashcard-back").innerText = "";
+                } else {
+                    if (index < 0) {
+                        index = flashcards.length - 1;
+                    } else if (index >= flashcards.length) {
+                        index = 0;
+                    }
+
+                    currentCardIndex = index;
+                    document.getElementById("flashcard-front").innerHTML = converter.makeHtml(flashcards[index].front);
+                    document.getElementById("flashcard-back").innerHTML = converter.makeHtml(flashcards[index].back);
+                    updateCodeBlocks(); // Update code blocks on flashcard change
+                }
+            }
+
 			function hasParentWithId(element, id) {
 				// Start with the current element
 				let currentElement = element;
@@ -390,6 +413,25 @@ Make sure not to put a comma after the last question.`;
 				generatePracticeHTML(examDict);
 				document.getElementById("checkPracticeExam").style.display = "block";
 			}
+
+			async function generateFlashCards(source) {
+				let prompt = source + `\n\n Above is your source text. Write 10 flash cards using the source text to help reinforce understanding. Do not put "\`\`\`json" at the start of the response, nor "\`\`\`" at the end. Format each question like this, following all newline procedures as I am:
+				
+				{ "front": "This is where you put the term/concept!", "back": "This is where you put a definition (15 words or less)!"},`;
+
+				status.textContent = "Creating flashcards";
+				let response = await generateResponse(prompt);
+				response = "["+response+"]";
+				console.log(response);
+				let json = JSON.parse(response);
+				flashcards = json;
+				console.log(flashcards);
+				status.textContent = "Done!";
+				currentCardIndex = 0;
+				displayFlashcard(currentCardIndex);
+			}
+
+			
 			
 			async function addPage() {
 				let tpc = document.getElementById("newPageInp").value;
@@ -446,6 +488,10 @@ Make sure not to put a comma after the last question.`;
 				document.getElementById("btn").addEventListener("click",generateBook);
 				document.getElementById("printBtn").addEventListener("click",printPDF);
 				document.getElementById("newPageButton").addEventListener("click",addPage);
+				let card = document.getElementById("flashcard-container");
+				card.addEventListener('click', () => {
+				card.classList.toggle('flipped');
+				});
 				document.getElementById("generatePracticeExam").addEventListener("click",async function() {
 					if (Object.keys(bookDict).length == 0) {
 						alert("Please generate a book first!");
@@ -453,10 +499,25 @@ Make sure not to put a comma after the last question.`;
 					}
 					await generatePracticeExam(fullBook(),document.getElementById("examLength").value,document.getElementById("examDifficulty").value);
 				});
+				document.getElementById("generate-flashcards").addEventListener("click", async function() {
+					if (Object.keys(bookDict).length == 0) {
+						alert("Please generate a book first!");
+						return;
+					}
+					await generateFlashCards(fullBook());
+				});
 				document.getElementById("checkPracticeExamBtn").addEventListener("click",checkPracticeExam);
 				document.getElementById("quantity").value = "5"; 
 
 				document.querySelector(".close-button").addEventListener("click", closeCodeTooltip);
+
+				document.getElementById("prevBtn").addEventListener("click", () => {
+					displayFlashcard(currentCardIndex - 1);
+				});
+
+				document.getElementById("nextBtn").addEventListener("click", () => {
+					displayFlashcard(currentCardIndex + 1);
+				});
 				
 				document.getElementById('pagedict').addEventListener("change", function() {
 					document.getElementById('tab1').click();
@@ -620,6 +681,16 @@ Make sure not to put a comma after the last question.`;
 				await generatePracticeExam(selectedText,"5","medium");
 				updateCodeBlocks();
 			});
+
+			const studyButton = document.querySelector(".study-button");
+			studyButton.addEventListener("mousedown", async function() {
+				const selection = window.getSelection();
+				const selectedText = selection.toString();
+				document.getElementById('tab6').click();
+				window.scrollTo({ top: 0, behavior: 'smooth' });
+				await generateFlashCards(selectedText);
+				updateCodeBlocks();
+			});
 			
 			const answerButton = document.getElementById("answerButton");
 			answerButton.addEventListener("mousedown", async function() {
@@ -651,7 +722,7 @@ Make sure not to put a comma after the last question.`;
 			
 		</script>
 		<div class="elaborate-tooltip tooltip">
-			<div class="elaborate-button">Elaborate</div><div class="practice-button">Practice</div><div class="test-button">Pop Quiz</div>
+			<div class="elaborate-button">Elaborate</div><div class="practice-button">Practice</div><div class="test-button">Pop Quiz</div><div class="study-button">Flash Cards</div>
 		</div>
 		<div class="execute-tooltip tooltip">
 			<button class="close-button">Close</button>
@@ -698,6 +769,8 @@ Make sure not to put a comma after the last question.`;
 					<label class="tab" for="tab2">Chat</label>
 					<input type="radio" name="tab" id="tab4">
 					<label class="tab" for="tab4">Practice</label>
+					<input type="radio" name="tab" id="tab6">
+            		<label class="tab" for="tab6">Study</label>
 					<input type="radio" name="tab" id="tab5">
 					<label class="tab" for="tab5">Exam</label>
 					<input type="radio" name="tab" id="tab3">
@@ -737,7 +810,7 @@ Make sure not to put a comma after the last question.`;
 						</div>
 					</div>
 					<div class="content5" id="content5">
-						<div id="examHeader">
+						<div class="header" id="examHeader">
 							<h1>Practice Exam</h1>
 							<p>Content from all pages of your book will appear here. Get ready!</p>
 							<div class="wrapper2">
@@ -762,6 +835,29 @@ Make sure not to put a comma after the last question.`;
 						</div>
 						<div id="checkPracticeExam">
 							<button id="checkPracticeExamBtn">Check Exam</button>
+						</div>
+					</div>
+					<div class="content6" id="content6">
+						<div class="header">
+							<h1>Flash Cards</h1>
+							<p>Content from all pages of your book will appear here. Try it out!</p>
+							<button id="generate-flashcards" class="animBtn">Study!</button>
+						</div>
+						<div id="flashcard-parent">
+							<div id="flashcard-container">
+								<div class="flashcard" id="flashcard">
+									<div class="flashcard-front" id="flashcard-front">
+										<!-- Front of the flashcard -->
+									</div>
+									<div class="flashcard-back" id="flashcard-back">
+										<!-- Back of the flashcard -->
+									</div>
+								</div>
+							</div>
+							<div class="wrapper2">
+								<button id="prevBtn" class="animBtn" style="flex-grow:1; font-size: 16px;">Previous</button>
+								<button id="nextBtn" class="animBtn2" style="flex-grow:1; font-size: 16px;">Next</button>
+							</div>
 						</div>
 					</div>
 					<div class="content3" id="content3">
@@ -795,12 +891,10 @@ Make sure not to put a comma after the last question.`;
 						</div>
 						<h2>Changelog</h2>
 						<ul>
-							<li><b>Practice exams!</b> You can now create tailored quizzes to test your knowledge. It auto-grades them too!</li>
-							<li><b>More Customization!</b> You can further adjust the writing style to match a particular skill level.</li>
-							<li>Changed prompting even more.</li>
-							<li>Chat mode now has access to the last message sent over chat. This will be expanded with future changes to further improve usability.</li>
-							<li>Tooltip behavior has been modified to display horizontally rather than vertically, and distinguish between options more clearly.</li>
-							<li>UI and usability improvements across the board.</li>
+							<li><b>Flash cards!</b> Check out the new "Study" tab to try them out.</li>
+							<li>Changed prompting even-even more.</li>
+							<li>Tooltip behavior has been expanded to include flash cards.</li>
+							<li>UI improvements across the board.</li>
 						</ul>
 						<p>A.P. 9/06/2024</p>
 					</div>

@@ -34,6 +34,7 @@
 #body {
   width: 70%;
   min-height: 100vh;
+  font-family: "Rubik", sans-serif;
 }
 
 #pagedict {
@@ -128,7 +129,7 @@
 	padding: 5px;
 }
 
-.elaborate-button, .practice-button, .test-button {
+.elaborate-button, .practice-button, .test-button, .study-button {
 	font-size: 14px;
 	padding: 5px 10px;
 	cursor: pointer;
@@ -139,7 +140,12 @@
 	border-right: 1px solid white;
 }
 
-.elaborate-button:hover, .practice-button:hover, .test-button:hover {
+.test-button {
+	
+	border-right: 1px solid white;
+}
+
+.elaborate-button:hover, .practice-button:hover, .test-button:hover, .study-button:hover {
 	background: #333;
 }
 
@@ -152,7 +158,7 @@
 }
 
 body {
-  font-family: sans-serif;
+  font-family: "Rubik", sans-serif;
   padding: 10px;
 }
 
@@ -237,11 +243,8 @@ pre > code {
     100%{background-position:0% 94%}
 }
 
-.content1,
-.content2,
-.content3,
-.content4,
-.content5 {
+.content1, .content2, .content3,
+.content4, .content5, .content6 {
     display: none;
     padding: 20px;
     border-top: 2px solid #999999;
@@ -292,6 +295,10 @@ label.tab {
     border-color: #999999;
 }
 
+#tab6:checked+label {
+    border-color: #999999;
+}
+
 #tab1:checked~.content1 {
     display: block;
 }
@@ -309,6 +316,10 @@ label.tab {
 }
 
 #tab5:checked~.content5 {
+    display: block;
+}
+
+#tab6:checked~.content6 {
     display: block;
 }
 
@@ -334,7 +345,7 @@ label.tab {
 	
 }
 
-#examHeader {
+.header {
 	text-align: center;
 	margin-bottom: 10px;
 	background-color: #dddddd;
@@ -342,7 +353,7 @@ label.tab {
 	padding: 10px;
 }
 
-#examHeader h1 {
+.header h1 {
 	margin:0;
 }
 
@@ -352,6 +363,14 @@ label.tab {
 	width: 150px;
 	height: 50px;
 }
+
+.content6 .header button {
+	margin: 0;
+	font-size: 16px;
+	width: 150px;
+	height: 50px;
+}
+
 
 .practiceExamQuestion select {
 	border-radius: 10px;
@@ -418,6 +437,77 @@ fieldset > button {
     margin-left: 10px;
     box-sizing: border-box;
     font-size: 16px;
+}
+
+#flashcard-container { /*This code was lifted from a w3schools guide with some substantial decorative tweaks*/
+	background-color: transparent;
+	width: 100%;
+	height: 350px;
+	margin: auto;
+	perspective: 1000px; /* Remove this if you don't want the 3D effect */
+}
+
+#flashcard-parent {
+	width: 70%;
+	height: 50%;
+	margin: auto;
+	position: relative;
+	transform-style: preserve-3d;
+}
+
+#flashcard-parent button {
+	margin-top: 10px;
+	height: 50px;
+}
+
+/* This container is needed to position the front and back side */
+.flashcard {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	text-align: center;
+	
+	transition: transform 0.4s;
+	transform-style: preserve-3d;
+}
+
+.flashcard div {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	font-size: 24px;
+}
+
+#flashcard-container:hover {
+	cursor: pointer;
+}
+
+/* Do an horizontal flip when you move the mouse over the flip box container */
+#flashcard-container.flipped .flashcard {
+	transform: rotateY(180deg);
+}
+
+/* Position the front and back side */
+.flashcard-front, .flashcard-back {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	border-radius: 10px;
+	-webkit-backface-visibility: hidden; /* Safari */
+	backface-visibility: hidden;
+}
+
+/* Style the front side (fallback if image is missing) */
+.flashcard-front {
+	background-color: #bbb;
+	color: black;
+}
+
+/* Style the back side */
+.flashcard-back {
+	background-color: dodgerblue;
+	color: white;
+	transform: rotateY(180deg);
 }
 
 @media (max-width: 600px) {
