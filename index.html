@@ -584,8 +584,7 @@ Make sure not to put a comma after the last question.`;
 				localStorage.setItem("tone",tone);
 			});
 			
-			const elabTooltip = document.querySelector(".elaborate-tooltip");
-			document.addEventListener("mouseup", () => {
+			function checkTooltip()  {
 				requestAnimationFrame(() => {
 					const selection = window.getSelection();
 					const text = selection.toString().replace(/\s/g, "");
@@ -606,7 +605,11 @@ Make sure not to put a comma after the last question.`;
 					elabTooltip.style.left = `${rect.left + rect.width/2 - elabTooltip.clientWidth/2}px`;
 					elabTooltip.style.top = `${rect.top - elabTooltip.clientHeight + window.scrollY}px`;
 				});
-			});
+			}
+
+			const elabTooltip = document.querySelector(".elaborate-tooltip");
+			document.addEventListener("mouseup", checkTooltip);
+			document.addEventListener("selectionchange", checkTooltip);
 			
 			window.onscroll = function (e)
 			{
@@ -794,20 +797,21 @@ Make sure not to put a comma after the last question.`;
 						</div>
 					</div>
 					<div class="content4" id="content4">
-						<div>
-							<div id="question">Question</div>
-						</div>
-						<div id = "answerholder">
-							<div id="answer">
-							Answer
+						<div class="wrapper">
+							<div id="questionholder"> <!--There must be a good reason I did this with my HTML-->
+								<div id="question">Question</div>
 							</div>
-							<fieldset id="answerSection">
-								<textarea id="answerInp" rows="5" style="width: 80%; resize:none;" placeholder="Your answer goes here!">
+							<div id = "answerholder"> <!--I don't think there is a good reason-->
+								<div id="answer">
+								Answer
+								</div>
 								
-								</textarea>
-								<button class="animBtn2" id="answerButton">Send</button>
-							</fieldset>
+							</div>
 						</div>
+						<fieldset id="answerSection">
+							<textarea id="answerInp" rows="5" style="width: 80%; resize:none;" placeholder="Your answer goes here!"></textarea>
+							<button class="animBtn2" id="answerButton">Send</button>
+						</fieldset>
 					</div>
 					<div class="content5" id="content5">
 						<div class="header" id="examHeader">

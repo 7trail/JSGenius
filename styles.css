@@ -28,7 +28,7 @@
 #body,.section {
   background-color: #fafafa;
   border: 3px solid black;
-  border-radius : 5px;
+  border-radius : 10px;
 }
 
 #body {
@@ -312,7 +312,7 @@ label.tab {
 }
 
 #tab4:checked~.content4 {
-    display: flex;
+    display: block;
 }
 
 #tab5:checked~.content5 {
@@ -327,10 +327,11 @@ label.tab {
 	flex-direction: row;
 	width: 100%;
 	box-sizing: border-box;
-	
 }
 
-
+#content4 .wrapper {
+	gap: 10px;
+}
 
 #checkPracticeExam {
 	display:none;
@@ -391,7 +392,6 @@ label.tab {
 	background-color: #c2e9ff;
 	border: 2px solid #3299ff;
 	height: 60vh;
-	margin-right: 10px;
 }
 
 #answer {
@@ -401,8 +401,12 @@ label.tab {
 	margin-bottom: 10px;
 }
 
+#questionholder {
+	flex-grow:1;
+}
+
 #answerholder {
-	margin-left: 10px;
+	flex-grow:1;
 }
 
 #question, #answer {
@@ -410,6 +414,7 @@ label.tab {
 	padding: 10px;
 	overflow-y:scroll;
 	position: relative;
+	
 }
 
 #content4 > div {
@@ -417,7 +422,6 @@ label.tab {
 	flex: 1;
 	
 	box-sizing: border-box;
-	height: 100vh;
 }
 
 fieldset {
@@ -505,7 +509,8 @@ fieldset > button {
 
 /* Style the back side */
 .flashcard-back {
-	background-color: dodgerblue;
+	background: rgb(128,168,255);
+	background: linear-gradient(115deg, rgba(128,168,255,1) 0%, rgba(189,232,255,1) 100%); 
 	color: white;
 	transform: rotateY(180deg);
 }
@@ -534,7 +539,7 @@ fieldset > button {
    }
    
    select {
-	   height: 35vh;
+	   height: auto;
    }
    
    #textgohere, #chatgohere {
@@ -542,13 +547,25 @@ fieldset > button {
 	   position: relative;
 	   width: calc(100%);
    }
-  
-  .content4 {
-    flex-direction: column;
-  }
 
   #flashcard-parent {
-	width: 350px;
-	height: 250px;
+	width: 60vw;
+	height: 50vw;
+  }
+
+  .elaborate-tooltip {
+	flex-direction: column;
+  }
+
+  .practice-button {
+	border-left: none;
+	border-right: none;
+	border-top: 1px solid white;
+	border-bottom: 1px solid white;
+  }
+
+  .test-button {
+	border-right: none;
+	border-bottom: 1px solid white;
   }
 }
