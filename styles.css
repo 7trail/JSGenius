@@ -526,7 +526,6 @@ fieldset > button {
 	   margin-top: 15px;
 	   max-width: 90%;
 	   min-width: 90%;
-	   height: 100vh;
    }
    
    label.tab {
@@ -546,5 +545,10 @@ fieldset > button {
   
   .content4 {
     flex-direction: column;
+  }
+
+  #flashcard-parent {
+	width: 350px;
+	height: 250px;
   }
 }
