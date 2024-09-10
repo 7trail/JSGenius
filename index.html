@@ -88,9 +88,11 @@
 			};
 			
 			var tone = "Professional, detailed, geared towards beginners";
-			const modelId="gemini-1.5-flash-exp-0827"
-			var model = genAI.getGenerativeModel({ model: modelId, systemInstruction: `You write textbooks and sections for textbooks and are ${tone}`, safetySettings});
+			const modelId="gemini-1.5-flash-exp-0827";
+			var tocModel = genAI.getGenerativeModel({ model: modelId, systemInstruction: `You write table of contents sections for a textbook. You are given a topic and number of pages and and include EXACTLY that many pages- no more, no less. You do not specify the number of pages or page numbers for any given section, only the order they are included.`, safetySettings});
+			var model = genAI.getGenerativeModel({ model: modelId, systemInstruction: `You write textbooks and sections for textbooks and are ${tone}. Don't repeat yourself in your books.`, safetySettings});
 			var chatModel = genAI.getGenerativeModel({ model: modelId, systemInstruction: `You are detailed, conversational, helpful`, safetySettings});
+			var practiceModel = genAI.getGenerativeModel({ model: modelId, systemInstruction: `You write practice problems for textbooks.`, safetySettings});
 			var body;
 			var textbox;
 			var converter = new showdown.Converter();
@@ -303,6 +305,7 @@
 
 						let whyButton = document.createElement("button");
 						whyButton.classList.add("whyButton");
+						whyButton.classList.add("animBtn");
 						whyButton.textContent = "Why?";
 						element.appendChild(whyButton);
 
@@ -390,10 +393,22 @@
 				bookDict[key] = value;
 				updateListBox();
 			}
+
+			function toTitleCase(str) { //Thank you stack overflow!
+				return str.replace(
+					/\w\S*/g,
+					text => text.charAt(0).toUpperCase() + text.substring(1).toLowerCase()
+				);
+			}
 			
 			function setPage(key) {
 				window.scrollTo({ top: 0, behavior: 'smooth' });
 				body.innerHTML = converter.makeHtml(bookDict[key]);
+				let tabName = toTitleCase(key);
+				if (tabName.length > 20) {
+					tabName = tabName.substring(0,17)+"...";
+				}
+				document.getElementById("label1").textContent = tabName;
 				updateCodeBlocks();
 				closeCodeTooltip();
 			}
@@ -407,10 +422,10 @@
 				}
 				resetBook();
 				
-				let tpcPrompt = `Write a list of ${complexity} ${document.getElementById("quantity").value} topics relating to ${topic}. Include EXACTLY as many pages as requested, no more or less. Do not include a title or header for the list or any extra newlines. Only include the list elements with numbers. Use ONLY ASCII-safe characters. The first page should ALWAYS be a page talking broadly about the concept. Do not pick redundant topics. Do not provide anything in your response other than the list. Make sure each page covers a different aspect of ${topic}. Do not describe or provide detail to each topic here, only list them. If you include code examples, do not include their output.`;
+				let tpcPrompt = `Write a list of ${complexity} ${document.getElementById("quantity").value} topics relating to ${topic}. Include EXACTLY as many topics (${document.getElementById("quantity").value}) as requested, no more or less. Do not include a title or header for the list or any extra newlines. Only include the list elements with numbers. Use ONLY ASCII-safe characters. The first page should ALWAYS be a page talking broadly about the concept. Do not pick redundant topics. Do not provide anything in your response other than the list. Make sure each page covers a different aspect of ${topic}. Do not describe or provide detail to each topic here, only list them. If you include code examples, do not include their output.`;
 				console.log(tpcPrompt);
 				status.textContent = "Creating list of pages";
-				let topicResponse = await generateResponse(tpcPrompt);
+				let topicResponse = await generateResponse(tpcPrompt, tocModel);
 				let topics = topicResponse.split('\n');
 				topics = topics.filter(n => n);
 				let topicFinal = "<h1>Table of Contents:</h2><br>";
@@ -427,7 +442,7 @@
 				for (const tpc of topics) {
 					console.log(tpc);
 					status.textContent = `Writing page ${i}/${topics.length}`;
-					let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative MARKDOWN-FRIENDLY section for a textbook on ${tpc} in ${topic} geared towards ${complexity}. Write at LEAST ${lengthDict[pageLength]} words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. Don't just write a list with a bunch of one-sentence snippets- write full paragraphs, and MAINTAIN THE STYLE AND STRUCTURE OF THE ABOVE BOOK. DO NOT repeat material already covered in previous chapters. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be. If you include blocks of code in your response, do not include their output. A button built into the textbook viewer will show their output for you.`;
+					let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative MARKDOWN-FRIENDLY section for a textbook on ${tpc} in ${topic} geared towards ${complexity}. Write at LEAST ${lengthDict[pageLength]} words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. IMPORTANT: DO NOT INCLUDE THE PAGE TITLE MORE THAN ONCE!!!!! Don't just write a list with a bunch of one-sentence snippets- write full paragraphs, and MAINTAIN THE STYLE AND STRUCTURE OF THE ABOVE BOOK. DO NOT repeat material already covered in previous chapters. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be. If you include blocks of code in your response, do not include their output. A button built into the textbook viewer will show their output for you.`;
 					let page = await generateResponse(pagePrompt);
 					addToBook(tpc,converter.makeHtml(page));
 					i+=1;
@@ -435,7 +450,7 @@
 
 				if (document.getElementById("addglossary").checked) {
 					status.textContent = "Adding Glossary";
-					let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Write a glossary for terms used in the above, using a markdown unordered list. Keep each definition to one line. Write all key terms.`;
+					let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Write a glossary for terms used in the above, using a markdown unordered list. Write all key terms. DO NOT write any more than the glossary.`;
 					let page = await generateResponse(pagePrompt);
 					addToBook("Glossary",converter.makeHtml(page));
 				}
@@ -489,14 +504,17 @@ Make sure not to put a comma after the last question.`;
 				let pageLength = document.getElementById("writeLength").value;
 				if (tpc == "") { return; }
 				status.textContent = `Adding page`;
-				let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative section for a textbook on ${tpc} geared towards ${complexity}. Write at LEAST ${lengthDict[pageLength]} words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. DO NOT repeat material already covered in previous chapters. Don't just write a list with a bunch of one-sentence snippets- write full paragraphs, and MAINTAIN THE STYLE AND STRUCTURE OF THE ABOVE BOOK. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be.`;
+				let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative section for a textbook on ${tpc} geared towards ${complexity}. Write at LEAST ${lengthDict[pageLength]} words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. DO NOT repeat material already covered in previous chapters. IMPORTANT: DO NOT INCLUDE THE PAGE TITLE MORE THAN ONCE!!!!! Don't just write a list with a bunch of one-sentence snippets- write full paragraphs, and MAINTAIN THE STYLE AND STRUCTURE OF THE ABOVE BOOK. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be.`;
 				let page = await generateResponse(pagePrompt);
 				addToBook(tpc,converter.makeHtml(page));
 				status.textContent = `Done!`;
 			}
 			
-			async function generateResponse(prompt, depth) {
+			async function generateResponse(prompt, mdl, depth) {
 				closeCodeTooltip();
+				if (mdl == null) {
+					mdl = model;
+				}
 				//const prompt = textbox.value;
 				if (depth == null) {
 					depth = 0;
@@ -505,7 +523,7 @@ Make sure not to put a comma after the last question.`;
 				refreshModel();
 				try {
 					console.log(prompt);
-					const result = await model.generateContentStream(prompt);
+					const result = await mdl.generateContentStream(prompt);
 					
 					// Print text as it comes in.
 					for await (const chunk of result.stream) {
@@ -519,7 +537,7 @@ Make sure not to put a comma after the last question.`;
 					playSound("noise.wav");
 				} catch (error) {
 					if (depth < 3) {
-						contents = generateResponse(prompt,depth+1);
+						contents = generateResponse(prompt,mdl, depth+1);
 					}
 					else {
 						return "Uh oh! There was an issue generating this page. There is a known issue with the backend having a 'recitation error', meaning the AI can't quite find its sources and aborts. They're working on a fix to this issue. Sorry!";
@@ -541,6 +559,10 @@ Make sure not to put a comma after the last question.`;
 				document.getElementById("btn").addEventListener("click",generateBook);
 				document.getElementById("printBtn").addEventListener("click",printPDF);
 				document.getElementById("newPageButton").addEventListener("click",addPage);
+				document.getElementById("writeFreeformPractice").addEventListener("click", async function() {
+					let pr = `${document.getElementById("freeformTopic").value} \n\n Create a free-form practice problem using the concepts described in the provided text. Don't include statements about what the question will develop- only include the instructions, and DO NOT include the answer.`;
+					await createFreeformPractice(pr);
+				});
 				let card = document.getElementById("flashcard-container");
 				card.addEventListener('click', () => {
 				card.classList.toggle('flipped');
@@ -675,7 +697,7 @@ Make sure not to put a comma after the last question.`;
 			chatButton.addEventListener("click", async function() {
 				let text = document.getElementById("chatInp").value;
 				let lastChat = document.getElementById("chatgohere").textContent;
-				let pr = `${text}\n\nRespond to the above message. Be thorough and detailed and include at least ${lengthDict[document.getElementById("writeLength").value]} words. Refer back to the contents of the below book and the prior chat, if any: BOOK CONTENTS: \n\n${fullBook()} \n\n CHAT CONTENTS: \n\n${lastChat}`;
+				let pr = `${text}\n\nRespond to the above message. Be thorough and detailed and include at least ${lengthDict[document.getElementById("writeLength").value]/2} words. Refer back to the contents of the below book and the prior chat, if any: BOOK CONTENTS: \n\n${fullBook()} \n\n CHAT CONTENTS: \n\n${lastChat}`;
 				document.getElementById("chatgohere").innerHTML = `<h1>Awaiting response...</h1>`;
 				window.scrollTo({ top: 0, behavior: 'smooth' });
 				const result = await chatModel.generateContentStream(pr);
@@ -710,15 +732,12 @@ Make sure not to put a comma after the last question.`;
 				updateCodeBlocks();
 			});
 			
-			const pracButton = document.querySelector(".practice-button");
-			pracButton.addEventListener("mousedown", async function() {
-				const selection = window.getSelection();
-				const selectedText = selection.toString();
-				let pr = `${selectedText} \n\n Create a free-form practice problem using the concepts described in the provided text. Don't include statements about what the question will develop- only include the instructions, and DO NOT include the answer.`;
+			async function createFreeformPractice(pr) {
 				document.getElementById('tab4').click();
 				document.getElementById("question").innerHTML = `<h1>Writing Practice Problem...</h1>`;
 				window.scrollTo({ top: 0, behavior: 'smooth' });
-				const result = await model.generateContentStream(pr);
+				console.log(pr);
+				const result = await practiceModel.generateContentStream(pr);
 				let contents = "";
 				// Print text as it comes in. This is a deviation from the standard function.
 				for await (const chunk of result.stream) {
@@ -728,6 +747,15 @@ Make sure not to put a comma after the last question.`;
 				}
 				updateCodeBlocks();
 				playSound("noise.wav");
+			}
+
+
+			const pracButton = document.querySelector(".practice-button");
+			pracButton.addEventListener("mousedown", async function() {
+				const selection = window.getSelection();
+				const selectedText = selection.toString();
+				let pr = `${selectedText} \n\n Create a free-form practice problem using the concepts described in the provided text. Don't include statements about what the question will develop- only include the instructions, and DO NOT include the answer.`;
+				await createFreeformPractice(pr);
 			});
 
 			const testButton = document.querySelector(".test-button");
@@ -759,7 +787,7 @@ Make sure not to put a comma after the last question.`;
 					alert("Uh oh! Make sure you have a question and an answer.");
 					return;
 				}
-				let pr = `${text}\n\n\n This is a practice problem. Below is what I answered: \n\n\n ${answer} \n\n Provide feedback on my answer. Tell me if it is correct or not, and how I can further learn.`;
+				let pr = `${text}\n\n\n This is a practice problem. Below is what I answered: \n\n\n ${answer} \n\n Tell me if it is correct or not. If it's incorrect, explain why. Don't include my solution in your response.`;
 				document.getElementById("answer").innerHTML = `<h1>Awaiting response...</h1>`;
 				window.scrollTo({ top: 0, behavior: 'smooth' });
 				const result = await model.generateContentStream(pr);
@@ -824,7 +852,7 @@ Make sure not to put a comma after the last question.`;
 			<div id="body">
 				<div class="container">
 					<input type="radio" name="tab" id="tab1" checked>
-					<label class="tab" for="tab1">Book</label>
+					<label class="tab" for="tab1" id="label1">Book</label>
 					<input type="radio" name="tab" id="tab2">
 					<label class="tab" for="tab2">Chat</label>
 					<input type="radio" name="tab" id="tab4">
@@ -854,6 +882,13 @@ Make sure not to put a comma after the last question.`;
 						</div>
 					</div>
 					<div class="content4" id="content4">
+						<div id="chatInputs">
+							<fieldset>
+								<textarea rows="5" style="width: 80%; resize:none;" placeholder="Problem topic goes here!" id="freeformTopic"></textarea>
+								<br>
+								<button class = "animBtn" id="writeFreeformPractice">Create Problem!</button>
+							</fieldset>
+						</div>
 						<div class="wrapper">
 							<div id="questionholder"> <!--There must be a good reason I did this with my HTML-->
 								<div id="question">Question</div>

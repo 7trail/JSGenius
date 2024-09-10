@@ -267,7 +267,10 @@ label.tab {
     display: inline-flex;
     justify-content: center;
     align-items: center;
-    width: 80px;
+   
+	/*width: 80px;*/
+	padding-left: 5px;
+	padding-right: 5px;
     height: 30px;
     background-color: #dddddd;
     border-style: solid solid none solid;
@@ -358,11 +361,16 @@ label.tab {
 	margin:0;
 }
 
-.content5 button {
+#examHeader button, #checkPracticeExam button {
 	margin: 0;
 	font-size: 16px;
 	width: 150px;
 	height: 50px;
+}
+
+#checkPracticeExam {
+	margin: auto;
+	text-align:center;
 }
 
 .content6 .header button {
@@ -403,10 +411,12 @@ label.tab {
 
 #questionholder {
 	flex-grow:1;
+	width: 50%;
 }
 
 #answerholder {
 	flex-grow:1;
+	width: 50%;
 }
 
 #question, #answer {
@@ -484,6 +494,10 @@ fieldset > button {
 
 #flashcard-container:hover {
 	cursor: pointer;
+}
+
+.whyButton {
+	margin-left: 10px;
 }
 
 /* Do an horizontal flip when you move the mouse over the flip box container */
