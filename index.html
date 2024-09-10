@@ -27,8 +27,6 @@
 		<!-- Import @google/generative-ai, as shown above. -->
 		<script type="module">
 			import { HarmBlockThreshold, HarmCategory, GoogleGenerativeAI } from "@google/generative-ai";
-
-
 			// Default export is a4 paper, portrait, using millimeters for units
 			// Fetch your API_KEY
 
@@ -43,6 +41,8 @@
 
 			// Access your API key (see "Set up your API key" above)
 			const genAI = new GoogleGenerativeAI(API_KEY);
+			const fileManager = new GoogleAIFileManager(API_KEY);
+			console.log("HGere");
 			
 			const safetySettings = [
 			  {
@@ -98,7 +98,7 @@
 			var converter = new showdown.Converter();
 			var status;
 
-			
+			let uploadedFile = null;
 			
 			var bookDict = {};
 			var examDict = {};
@@ -286,6 +286,8 @@
 			function checkPracticeExam() {
 				let questions = document.getElementById("practiceTest").querySelectorAll("div.practiceExamQuestion");
 				let i = 0;
+				let total = questions.length;
+				let right = 0;
 				questions.forEach((element,index) => {
 					console.log(examDict[i].correct_answer);
 					let sel = document.querySelector(`input[name="question${index}"]:checked`);
@@ -293,6 +295,7 @@
 					if (sel != null) {
 						correct = (sel.value != null) && examDict[i].correct_answer == sel.value
 					}
+					if (correct) {right += 1;}
 					element.classList.remove("correct");
 					element.classList.remove("incorrect");
 					element.classList.add(correct ? "correct" : "incorrect");
@@ -332,6 +335,8 @@
 					};
 					i+=1;
 				});
+
+				setGrade(right+"/"+total+`(${(right/(1.0*total))}%)`);
 			}
 			
 			function playSound(url) {
@@ -412,6 +417,10 @@
 				updateCodeBlocks();
 				closeCodeTooltip();
 			}
+
+			function setGrade(grade) {
+				document.getElementById("grade").textContent = grade;
+			};
 			
 			async function generateBook() {
 				let topic = textbox.value.trim();
@@ -422,7 +431,7 @@
 				}
 				resetBook();
 				
-				let tpcPrompt = `Write a list of ${complexity} ${document.getElementById("quantity").value} topics relating to ${topic}. Include EXACTLY as many topics (${document.getElementById("quantity").value}) as requested, no more or less. Do not include a title or header for the list or any extra newlines. Only include the list elements with numbers. Use ONLY ASCII-safe characters. The first page should ALWAYS be a page talking broadly about the concept. Do not pick redundant topics. Do not provide anything in your response other than the list. Make sure each page covers a different aspect of ${topic}. Do not describe or provide detail to each topic here, only list them. If you include code examples, do not include their output.`;
+				let tpcPrompt = `Write a list of ${document.getElementById("quantity").value} topics relating to ${topic}. Include EXACTLY as many topics (${document.getElementById("quantity").value}) as requested, no more or less. The topics chosen should be ${complexity} in nature but ALWAYS relevant. Do not include a title or header for the list or any extra newlines. Only include the list elements with numbers. Use ONLY ASCII-safe characters. The first page should ALWAYS be a page talking broadly about the concept. Do not pick redundant topics. Do not provide anything in your response other than the list. Make sure each page covers a different aspect of ${topic}. Do not describe or provide detail to each topic here, only list them. If you include code examples, do not include their output.`;
 				console.log(tpcPrompt);
 				status.textContent = "Creating list of pages";
 				let topicResponse = await generateResponse(tpcPrompt, tocModel);
@@ -467,6 +476,7 @@
 { "question": "This is where the question goes", "answers":["A: This is Answer A","B: This is answer B"], "correct_answer": "A"},
  
 Make sure not to put a comma after the last question.`;
+				setGrade("");
 				status.textContent = "Creating exam";
 				let response = await generateResponse(prompt);
 				response = "["+response+"]";
@@ -678,7 +688,14 @@ Make sure not to put a comma after the last question.`;
 					const rect = selection.getRangeAt(0).getBoundingClientRect();
 					elabTooltip.style.display = 'flex';
 					elabTooltip.style.left = `${rect.left + rect.width/2 - elabTooltip.clientWidth/2}px`;
-					elabTooltip.style.top = `${rect.top - elabTooltip.clientHeight + window.scrollY}px`;
+					let top = rect.top - elabTooltip.clientHeight + window.scrollY;
+					if (top < window.scrollY) {
+						top = window.scrollY + 25;
+					}
+					if (top > window.scrollY+window.innerHeight) {
+						top = window.innerHeight - 25;
+					}
+					elabTooltip.style.top = `${top}px`;
 				});
 			}
 
@@ -851,7 +868,7 @@ Make sure not to put a comma after the last question.`;
 						<button type="button" class="collapsible">Advanced Settings</button>
 						
 						<div class="collapseContent">
-							<h2>Writing Settings</h2>
+							<h3>Writing Settings</h3>
 							
 							<div class="wrapper2" style="flex-direction: column; border: 2px solid black;">
 								<div style="flex-grow: 1; padding: 10px">
@@ -860,7 +877,7 @@ Make sure not to put a comma after the last question.`;
 									<br>
 									<button id="resetTone" style="padding:10px;" class="animBtn2">Reset Tone</button>
 									<br>
-									<label for="addglossary">Glossary?</label>
+									<label for="addglossary">Include Glossary?</label>
 									<input type="checkbox" id="addglossary">
 								</div>
 								<div style="flex-grow:1; padding: 10px;">
@@ -979,6 +996,7 @@ Make sure not to put a comma after the last question.`;
 							</div>
 							<br>
 							<button class="animBtn2" id="generatePracticeExam">Create Quiz</button>
+							<h2 id="grade"></h2>
 						</div>
 						<div id="practiceTest">
 

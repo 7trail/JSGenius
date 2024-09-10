@@ -493,6 +493,10 @@ fieldset > textarea {
     box-sizing: border-box;
 }
 
+#grade {
+	margin-top:10px;
+}
+
 fieldset > button {
 	padding: 10px;
     width: 15%;
