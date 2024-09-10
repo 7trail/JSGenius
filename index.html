@@ -805,6 +805,21 @@ Make sure not to put a comma after the last question.`;
 			function printPDF() {
 				printDiv(converter.makeHtml(fullBook()), "Book");
 			}
+
+			var coll = document.getElementsByClassName("collapsible");
+			var i;
+
+			for (i = 0; i < coll.length; i++) {
+			coll[i].addEventListener("click", function() {
+				this.classList.toggle("activeCollapse");
+				var content = this.nextElementSibling;
+				if (content.style.display === "block") {
+				content.style.display = "none";
+				} else {
+				content.style.display = "block";
+				}
+			});
+			} 
 			
 		</script>
 		<div class="elaborate-tooltip tooltip">
@@ -827,14 +842,47 @@ Make sure not to put a comma after the last question.`;
 						<textarea rows="5" style=" width: 90%; resize:none;" maxlength="180" placeholder="Prompt goes here..." id="inp"></textarea>
 						<br>
 						<br>
-						<label for="addglossary">Glossary?</label>
-						<input type="checkbox" id="addglossary">
 						<label for="quantity">Pages (3-10):</label>
 						<input type="number" id="quantity" name="quantity" min="3" max="10" onkeyup="if(value<3) value=3; if (value > 10) value = 10;"><br><br>
 						</div>
 						
 						<button id="btn" class="animBtn"><h3>Generate</h3></button>
 						<br>
+						<button type="button" class="collapsible">Advanced Settings</button>
+						
+						<div class="collapseContent">
+							<h2>Writing Settings</h2>
+							
+							<div class="wrapper2" style="flex-direction: column; border: 2px solid black;">
+								<div style="flex-grow: 1; padding: 10px">
+									<p>Writing Tone</p>
+									<textarea id="tone"></textarea>
+									<br>
+									<button id="resetTone" style="padding:10px;" class="animBtn2">Reset Tone</button>
+									<br>
+									<label for="addglossary">Glossary?</label>
+									<input type="checkbox" id="addglossary">
+								</div>
+								<div style="flex-grow:1; padding: 10px;">
+									<p>Writing Length</p>
+									<select id="writeLength" size="4">
+										<option value="Short">250 words/page</option>
+										<option value="Medium">500 words/page</option>
+										<option value="Long">1000 words/page</option>
+										<option value="Very Long">2000 words/page</option>
+									</select>
+								</div>
+								<div style="flex-grow:1; padding: 10px;">
+									<p>Page Complexity</p>
+									<select id="writeComplexity" size="4">
+										<option value="Beginner">Beginner</option>
+										<option value="Intermediate">Intermediate</option>
+										<option value="Advanced">Advanced</option>
+										<option value="Highly Advanced, Expert">Professional</option>
+									</select>
+								</div>
+							</div>
+						</div> 
 						<select id="pagedict" Name="Table of Contents" size="10">
 						</select>  
 						<br>
@@ -860,7 +908,7 @@ Make sure not to put a comma after the last question.`;
 					<input type="radio" name="tab" id="tab6">
             		<label class="tab" for="tab6">Study</label>
 					<input type="radio" name="tab" id="tab5">
-					<label class="tab" for="tab5">Exam</label>
+					<label class="tab" for="tab5">Quiz</label>
 					<input type="radio" name="tab" id="tab3">
 					<label class="tab" for="tab3">Options</label>
 					<div class="content1" id="content1">
@@ -869,7 +917,9 @@ Make sure not to put a comma after the last question.`;
 						</div>
 					</div>
 					<div class="content2" id="chat">
-						<div id="chatInputs">
+						<div class="header" id="chatInputs">
+							<h1>Study Partner</h1>
+							<p>Go ahead and ask a question!</p>
 							<fieldset>
 								<textarea rows="5" style="width: 80%; resize:none;" placeholder="Your question goes here!" id="chatInp"></textarea>
 								<br>
@@ -878,16 +928,20 @@ Make sure not to put a comma after the last question.`;
 						</div>
 						<br>
 						<div id="chatgohere">
-							Pretty UI coming soon! Try sending a message.
+							Try sending a message!
 						</div>
 					</div>
 					<div class="content4" id="content4">
-						<div id="chatInputs">
-							<fieldset>
-								<textarea rows="5" style="width: 80%; resize:none;" placeholder="Problem topic goes here!" id="freeformTopic"></textarea>
-								<br>
-								<button class = "animBtn" id="writeFreeformPractice">Create Problem!</button>
-							</fieldset>
+						<div class="header">
+							<h1>Practice Problem</h1>
+							<p>Put your practice problem topic below. Test your skills!</p>
+							<div id="chatInputs">
+								<fieldset>
+									<textarea rows="5" style="width: 80%; resize:none;" placeholder="Problem topic goes here!" id="freeformTopic"></textarea>
+									<br>
+									<button class = "animBtn" id="writeFreeformPractice">Create Problem!</button>
+								</fieldset>
+							</div>
 						</div>
 						<div class="wrapper">
 							<div id="questionholder"> <!--There must be a good reason I did this with my HTML-->
@@ -907,7 +961,7 @@ Make sure not to put a comma after the last question.`;
 					</div>
 					<div class="content5" id="content5">
 						<div class="header" id="examHeader">
-							<h1>Practice Exam</h1>
+							<h1>Pop Quiz</h1>
 							<p>Content from all pages of your book will appear here. Get ready!</p>
 							<div class="wrapper2">
 								<select id="examLength" style = "flex-grow:1;" size="4">
@@ -924,7 +978,7 @@ Make sure not to put a comma after the last question.`;
 								</select>
 							</div>
 							<br>
-							<button class="animBtn2" id="generatePracticeExam">Generate Exam</button>
+							<button class="animBtn2" id="generatePracticeExam">Create Quiz</button>
 						</div>
 						<div id="practiceTest">
 
@@ -959,41 +1013,14 @@ Make sure not to put a comma after the last question.`;
 					<div class="content3" id="content3">
 						<button class="animBtn" style="width: 25%; font-size: 16px;" id="printBtn">Print book as PDF</button>
 						<br>
-						<h2>Writing Settings</h2>
-						<p>This defines how the program writes. Leave it alone for default behavior.</p>
-						<fieldset>
-							<textarea id="tone"></textarea>
-							<button id="resetTone">Reset Tone</button>
-						</fieldset>
-						<div class="wrapper2" style="border: 2px solid black;">
-							<div style="flex-grow:1; padding: 10px;">
-								<p>How long would you like your pages?</p>
-								<select id="writeLength" size="4">
-									<option value="Short">Short - 250/page</option>
-									<option value="Medium">Medium - 500/page</option>
-									<option value="Long">Long - 1000/page</option>
-									<option value="Very Long">Very Long - 2000/page</option>
-								</select>
-							</div>
-							<div style="flex-grow:1; padding: 10px;">
-								<p>Who would you like your pages geared towards?</p>
-								<select id="writeComplexity" size="4">
-									<option value="Beginner">Beginner</option>
-									<option value="Intermediate">Intermediate</option>
-									<option value="Advanced">Advanced</option>
-									<option value="Highly Advanced, Expert">Professional</option>
-								</select>
-							</div>
-						</div>
 						<h2>Changelog</h2>
 						<ul>
-							<li>Mobile? Mobile support is nearly complete.</li>
-							<li>Changed the Chat menu to better reflect its intended goals. It should be more conversational in its standard mode.</li>
-							<li>The tooltip <i>should</i> appear on mobile now. Needs further testing.</li>
-							<li>UI improvements across the board.</li>
-							<li>I've determined that this program is nearly feature-complete. Ongoing improvements will mostly be UI-related.</li>
+							<li>Substantial QOL changes to improve the user experience.</li>
+							<li>Site layout has been changed to make certain settings easier to access.</li>
+							<li>Site layout has been changed to better retain consistency between pages.</li>
+							<li>Prompts for most features have been improved to better match desired behaviors.</li>
 						</ul>
-						<p>A.P. 9/09/2024</p>
+						<p>A.P. 9/10/2024</p>
 					</div>
 					
 					
