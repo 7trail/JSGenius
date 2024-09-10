@@ -488,7 +488,7 @@ fieldset > button {
 
 /* Do an horizontal flip when you move the mouse over the flip box container */
 #flashcard-container.flipped .flashcard {
-	transform: rotateY(180deg);
+	transform: rotateX(180deg);
 }
 
 /* Position the front and back side */
@@ -504,15 +504,15 @@ fieldset > button {
 /* Style the front side (fallback if image is missing) */
 .flashcard-front {
 	background-color: #bbb;
-	color: black;
+	color: white;
 }
 
 /* Style the back side */
 .flashcard-back {
 	background: rgb(128,168,255);
 	background: linear-gradient(115deg, rgba(128,168,255,1) 0%, rgba(189,232,255,1) 100%); 
-	color: white;
-	transform: rotateY(180deg);
+	
+	transform: rotateX(180deg);
 }
 
 @media (max-width: 600px) {

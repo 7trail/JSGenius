@@ -73,6 +73,13 @@
 				"Advanced philosophy"
 			];
 
+			const difficultyDict = {
+				"easy": "easy, beginner-friendly",
+				"medium": "medium",
+				"hard": "hard, complex problems, specific details of textbook",
+				"impossible": "extremely hard, very complex problems and very specific questions"
+			};
+
 			const lengthDict = {
 				"Short": "250",
 				"Medium": "500",
@@ -280,7 +287,10 @@
 				questions.forEach((element,index) => {
 					console.log(examDict[i].correct_answer);
 					let sel = document.querySelector(`input[name="question${index}"]:checked`);
-					let correct = (sel.value != null) && examDict[i].correct_answer == sel.value;
+					let correct = false;
+					if (sel != null) {
+						correct = (sel.value != null) && examDict[i].correct_answer == sel.value
+					}
 					element.classList.remove("correct");
 					element.classList.remove("incorrect");
 					element.classList.add(correct ? "correct" : "incorrect");
@@ -290,6 +300,32 @@
 						b.classList.add("showRightAnswer");
 						b.textContent = "Correct Answer: " + examDict[i].correct_answer;
 						element.appendChild(b);
+
+						let whyButton = document.createElement("button");
+						whyButton.classList.add("whyButton");
+						whyButton.textContent = "Why?";
+						element.appendChild(whyButton);
+
+						let explanDiv = document.createElement("div"); // This is where our explanation will go
+						explanDiv.classList.add("explanation");
+						element.appendChild(explanDiv);
+						
+						let dict = JSON.stringify(examDict[i]);
+						whyButton.addEventListener("click", async function() {
+							// Copy/paste the chat code from below here, and stick the results in explanDiv
+							let pr = `Question Data: ${dict} \n\n Chosen answer: ${(sel == null ? "No Answer Chosen" : sel.value)} \n\n Above is some information on a practice problem. Explain why the chosen answer is wrong, and why the correct answer is right. You have 50 words to do so.`;
+							console.log(pr);
+							const result = await chatModel.generateContentStream(pr);
+							let contents = "";
+							// Print text as it comes in. This is a deviation from the standard function.
+							for await (const chunk of result.stream) {
+								const chunkText = chunk.text();
+								contents += chunkText;
+								explanDiv.innerHTML = converter.makeHtml(contents);
+							}
+							playSound("noise.wav");
+							updateCodeBlocks();
+						});
 					};
 					i+=1;
 				});
@@ -357,7 +393,7 @@
 			
 			function setPage(key) {
 				window.scrollTo({ top: 0, behavior: 'smooth' });
-				body.innerHTML = bookDict[key];
+				body.innerHTML = converter.makeHtml(bookDict[key]);
 				updateCodeBlocks();
 				closeCodeTooltip();
 			}
@@ -391,7 +427,7 @@
 				for (const tpc of topics) {
 					console.log(tpc);
 					status.textContent = `Writing page ${i}/${topics.length}`;
-					let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative section for a textbook on ${tpc} in ${topic} geared towards ${complexity}. Write at LEAST ${lengthDict[pageLength]} words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. Don't just write a list with a bunch of one-sentence snippets- write full paragraphs, and MAINTAIN THE STYLE AND STRUCTURE OF THE ABOVE BOOK. DO NOT repeat material already covered in previous chapters. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be. If you include blocks of code in your response, do not include their output. A button built into the textbook viewer will show their output for you.`;
+					let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative MARKDOWN-FRIENDLY section for a textbook on ${tpc} in ${topic} geared towards ${complexity}. Write at LEAST ${lengthDict[pageLength]} words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. Don't just write a list with a bunch of one-sentence snippets- write full paragraphs, and MAINTAIN THE STYLE AND STRUCTURE OF THE ABOVE BOOK. DO NOT repeat material already covered in previous chapters. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be. If you include blocks of code in your response, do not include their output. A button built into the textbook viewer will show their output for you.`;
 					let page = await generateResponse(pagePrompt);
 					addToBook(tpc,converter.makeHtml(page));
 					i+=1;
@@ -399,7 +435,7 @@
 
 				if (document.getElementById("addglossary").checked) {
 					status.textContent = "Adding Glossary";
-					let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Write a glossary for terms used in the above, using markdown formatting AND AN EXTRA NEWLINE. Keep each definition to one line. Write all key terms.`;
+					let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Write a glossary for terms used in the above, using a markdown unordered list. Keep each definition to one line. Write all key terms.`;
 					let page = await generateResponse(pagePrompt);
 					addToBook("Glossary",converter.makeHtml(page));
 				}
@@ -411,7 +447,7 @@
 				/*let prompt = fullBook() + `\n\nAbove is the full book. Write a multiple-choice practice test for the above text with 10 questions. Format each question like this, following all newline procedures as I am:
 
 { "question": "This is where the question goes", "answers":["A: This is Answer A","B: This is answer B"]},`;*/
-				let prompt = source + `\n\nWrite a ${difficulty} multiple-choice practice test for the above content with ${qCount} questions. Do not put "\`\`\`json" at the start of the response, nor "\`\`\`" at the end. Format each question like this, following all newline procedures as I am:
+				let prompt = source + `\n\nWrite a multiple-choice practice test for the above content with ${qCount} questions. It should be ${difficultyDict[difficulty]} in terms of difficulty. Do not put "\`\`\`json" at the start of the response, nor "\`\`\`" at the end. Format each question like this, following all newline procedures as I am:
 
 { "question": "This is where the question goes", "answers":["A: This is Answer A","B: This is answer B"], "correct_answer": "A"},
  
@@ -473,7 +509,7 @@ Make sure not to put a comma after the last question.`;
 					
 					// Print text as it comes in.
 					for await (const chunk of result.stream) {
-						console.log(chunk);
+						//console.log(chunk);
 						const chunkText = chunk.text();
 						contents += chunkText;
 					}
@@ -486,7 +522,7 @@ Make sure not to put a comma after the last question.`;
 						contents = generateResponse(prompt,depth+1);
 					}
 					else {
-						return "Uh oh! There was an issue generating this page. The issue is most likely the RECITATION error, which is a known problem. Google is working on fixing this known and sizable error.";
+						return "Uh oh! There was an issue generating this page. There is a known issue with the backend having a 'recitation error', meaning the AI can't quite find its sources and aborts. They're working on a fix to this issue. Sorry!";
 					}
 				}
 				
