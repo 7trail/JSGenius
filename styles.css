@@ -292,7 +292,8 @@ pre > code {
 }
 
 .content1, .content2, .content3,
-.content4, .content5, .content6 {
+.content4, .content5, .content6,
+.content7 {
     display: none;
     padding: 20px;
     border-top: 2px solid #999999;
@@ -350,6 +351,10 @@ label.tab {
     border-color: #999999;
 }
 
+#tab7:checked+label {
+    border-color: #999999;
+}
+
 #tab1:checked~.content1 {
     display: block;
 }
@@ -371,6 +376,10 @@ label.tab {
 }
 
 #tab6:checked~.content6 {
+    display: block;
+}
+
+#tab7:checked~.content7 {
     display: block;
 }
 
@@ -491,6 +500,16 @@ fieldset > textarea {
     padding: 10px;
 	width: 80%;
     box-sizing: border-box;
+}
+
+.content7 h3 {
+	display: list-item;
+}
+
+.content7 button {
+	width: 150px;
+	height: 50px;
+	font-size: 16px;
 }
 
 #grade {

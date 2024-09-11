@@ -92,6 +92,7 @@
 			var model = genAI.getGenerativeModel({ model: modelId, systemInstruction: `You write textbooks and sections for textbooks and are ${tone}. Don't repeat yourself in your books.`, safetySettings});
 			var chatModel = genAI.getGenerativeModel({ model: modelId, systemInstruction: `You are detailed, conversational, helpful`, safetySettings});
 			var practiceModel = genAI.getGenerativeModel({ model: modelId, systemInstruction: `You write practice problems for textbooks.`, safetySettings});
+			var jsonMdl = genAI.getGenerativeModel({ model: modelId, systemInstruction: `You write JSON with no formatting. You write as much JSON as needed, but nothing more than the JSON.`, safetySettings});
 			var body;
 			var textbox;
 			var converter = new showdown.Converter();
@@ -507,14 +508,14 @@ Make sure not to put a comma after the last question.`;
 
 			
 			
-			async function addPage() {
-				let tpc = document.getElementById("newPageInp").value;
+			async function addPage(book, topic, model) {
+				let tpc = topic;
 				let complexity = document.getElementById("writeComplexity").value;
 				let pageLength = document.getElementById("writeLength").value;
 				if (tpc == "") { return; }
 				status.textContent = `Adding page`;
-				let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative section for a textbook on ${tpc} geared towards ${complexity}. Write at LEAST ${lengthDict[pageLength]} words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. DO NOT repeat material already covered in previous chapters. IMPORTANT: DO NOT INCLUDE THE PAGE TITLE MORE THAN ONCE!!!!! Don't just write a list with a bunch of one-sentence snippets- write full paragraphs, and MAINTAIN THE STYLE AND STRUCTURE OF THE ABOVE BOOK. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be.`;
-				let page = await generateResponse(pagePrompt);
+				let pagePrompt = book + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative section for a textbook on ${tpc} geared towards ${complexity}. Write at LEAST ${lengthDict[pageLength]} words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. DO NOT repeat material already covered in previous chapters. IMPORTANT: DO NOT INCLUDE THE PAGE TITLE MORE THAN ONCE!!!!! Don't just write a list with a bunch of one-sentence snippets- write full paragraphs, and MAINTAIN THE STYLE AND STRUCTURE OF THE ABOVE BOOK. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be.`;
+				let page = await generateResponse(pagePrompt, model);
 				addToBook(tpc,converter.makeHtml(page));
 				status.textContent = `Done!`;
 			}
@@ -537,11 +538,14 @@ Make sure not to put a comma after the last question.`;
 					// Print text as it comes in.
 					for await (const chunk of result.stream) {
 						//console.log(chunk);
-						const chunkText = chunk.text();
+						try {
+							const chunkText = chunk.text();
 						contents += chunkText;
+						} catch {}
+						
 					}
-					console.log("**********RESULT*********\n\n\n\n\n\n");
-					console.log(result);
+					//console.log("**********RESULT*********\n\n\n\n\n\n");
+					//console.log(result);
 					//console.log("getting here!" + contents);
 					playSound("noise.wav");
 				} catch (error) {
@@ -567,7 +571,9 @@ Make sure not to put a comma after the last question.`;
 				status = document.getElementById("status");
 				document.getElementById("btn").addEventListener("click",generateBook);
 				document.getElementById("printBtn").addEventListener("click",printPDF);
-				document.getElementById("newPageButton").addEventListener("click",addPage);
+				document.getElementById("newPageButton").addEventListener("click",async function () {
+					await addPage(fullBook(), document.getElementById("newPageInp").value);
+				});
 				document.getElementById("writeFreeformPractice").addEventListener("click", async function() {
 					let pr = `${document.getElementById("freeformTopic").value} \n\n Create a free-form practice problem using the concepts described in the provided text. Don't include statements about what the question will develop- only include the instructions, and DO NOT include the answer.`;
 					await createFreeformPractice(pr);
@@ -836,7 +842,172 @@ Make sure not to put a comma after the last question.`;
 				}
 			});
 			} 
+
+			let checkText = "";
+			let formatInstructions = ` Each element should be a JSON object. Store them in an array. Example:
+
+			{"topic":"This is the topic", "intent":"FEEDBACK", "response":"This is a brief summary of what was discussed and what the chosen intent will do."}
 			
+			The topic should be a title-case version of the topic in question.
+			There are four different values intent can be: "PAGE", "STUDY", "DOCUMENT", and "FEEDBACK". Set the intent to "PAGE" if the users need information or details on a topic. Set the intent to "STUDY" if the users express a need to practice. Set the intent to "DOCUMENT" if the user needs a document written: i.e. a resume, a summary of a book, etc. The difference between "DOCUMENT" and "PAGE" is if the user needs learning resources (use PAGE) or something pre-written (like a resume template or step-by-step on a math problem, use DOCUMENT). Set the intent to "FEEDBACK" if the users simply want to take note of something, or have a question that can be answered.
+			The response is a 100-words-or-less statement, summarizing the part of the conversation in question.`;
+
+			let exclusionInstructions = ` Below is an EXISTING JSON list of topics. These topics are already accounted for. DO NOT include these topics in your output; only write JSON for NEW topics that appear: \n\n`;
+
+			let topicList = [];
+
+			let alreadyChecked = "";
+
+			const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+			const recognition = new SpeechRecognition();
+			// DOM elements
+			const startBtn = document.getElementById('startBtn');
+			const stopBtn = document.getElementById('stopBtn');
+
+			let isRecording = false;
+			let speechText = '';
+
+			// Enable continuous recognition
+			recognition.continuous = true;
+			recognition.interimResults = true;
+
+			let check = 0;
+
+			async function writeLiveInput(data) {
+				let fullConvo = data;
+				let finalConvo = fullConvo.replace(alreadyChecked,"This is the already-checked part of the conversation:"+alreadyChecked+"\n\nTHIS IS THE NEW PART OF THE CONVERSATION\n\n");
+				alreadyChecked = fullConvo;
+				let response = await generateResponse(finalConvo + "\n\nAbove is a conversation between my study group. Your job is to list all topics you are asked to include. When you encounter the keyword 'hey winter,' or variations of it, immediately begin compiling all the topics mentioned after this keyword. ex: 'winter, put picking food on the list' would be on the list, but 'we need to talk about eating food' would not, because it doesn't mention Winter (your name)." + formatInstructions + exclusionInstructions + JSON.stringify(topicList) + "\n\n If no new topics were discussed, OR all new topics are redundant, just output '[]' for an empty array.", jsonMdl);
+				if (!response.startsWith("[")) {
+					response = "[" + response + "]";
+				}
+				console.log(response);
+				let json = JSON.parse(response);
+
+				let lst = document.getElementById("liveField");
+
+				document.getElementById("liveText").textContent = "Responding...";
+
+
+				let newDivs = [];
+				for (let i = 0; i < json.length; i++) {
+					// Add them to the UI
+					const newDiv = document.createElement("div");
+					const h1 = document.createElement("h3");
+
+					h1.textContent = json[i].topic + ` (${json[i].intent})`;
+
+					lst.appendChild(newDiv);
+					newDiv.appendChild(h1);
+					const p = document.createElement("p");
+					p.textContent = json[i].response;
+					newDiv.appendChild(p);
+					topicList.push(json[i]);
+					newDivs.push(newDiv);
+				}
+
+				for (let i = 0; i < json.length; i++) {
+					if (json[i].intent == "STUDY") {
+						const newBtn = document.createElement("button");
+						newBtn.classList.add("animBtn");
+						newBtn.textContent = "Study Flash Cards";
+						let txt = ["Topic: " + json[i].topic + "\n\nContext: " + json[i].response];
+						newBtn.addEventListener("click", async function() {
+							document.getElementById('tab6').click();
+							window.scrollTo({ top: 0, behavior: 'smooth' });
+							await generateFlashCards(txt);
+						});
+
+						const newBtn2 = document.createElement("button");
+						newBtn2.classList.add("animBtn");
+						newBtn2.textContent = "Take Pop Quiz";
+						newBtn2.addEventListener("click", async function() {
+							document.getElementById('tab5').click();
+							window.scrollTo({ top: 0, behavior: 'smooth' });
+							await generatePracticeExam(txt);
+						});
+
+						newDivs[i].appendChild(newBtn);
+						newDivs[i].appendChild(newBtn2);
+					}
+				}
+
+				document.getElementById("liveText").textContent = "Writing Pages...";
+				for (let i = 0; i < json.length; i++) {
+					if (json[i].intent == "PAGE") {
+						addPage("Context: " + json[i].response,json[i].topic);
+					}
+					if (json[i].intent == "DOCUMENT") {
+						let pr = `Full Conversation: \n\n${fullConvo}\n\nContext: ${json[i].topics}\n\n${json[i].response}\n\nYour job is to provide what the user needs, based on the context and conversation. Answer the user's questions in-depth, or write what they request, using at least 500 words to do so.`;
+						let resp = await generateResponse(pr,chatModel);
+						addToBook(json[i].topic,resp);
+					}
+				}
+				document.getElementById("liveText").textContent = "Idle..."
+			}
+
+			document.getElementById("liveButton").addEventListener("click", async function () {
+				await writeLiveInput(document.getElementById("liveInputTest").value);
+			});
+
+			recognition.onresult = async (event) => {
+				let interimTranscript = '';
+				for (let i = event.resultIndex; i < event.results.length; i++) {
+					if (event.results[i].isFinal) {
+						speechText += event.results[i][0].transcript;
+						checkText += event.results[i][0].transcript;
+					} else {
+						interimTranscript += event.results[i][0].transcript;
+					}
+				}
+			}
+
+			let isInGenerate = false;
+			setInterval(async () => {
+				if (checkText != alreadyChecked && !isInGenerate) {
+					isInGenerate = true;
+					await writeLiveInput(checkText);
+				}
+				isInGenerate = false;
+			}, 15000); // 15000 milliseconds = 15 seconds
+			
+
+			document.getElementById("resetLive").addEventListener("click", function () {
+				topicList = "";
+				document.getElementById("liveField").innerHTML="";
+				if (isRecording) {
+					stopRecording();
+				}
+			})
+			// Start recording
+			startBtn.addEventListener('click', () => {
+				if (!isRecording) {
+					isRecording = true;
+					recognition.start();
+					startBtn.disabled = true;
+					stopBtn.disabled = false;
+					console.log('Recording started...');
+					document.getElementById("liveText").textContent = "Idle...";
+				}
+			});
+
+			function stopRecording() {
+				if (isRecording) {
+					isRecording = false;
+					recognition.stop();
+					startBtn.disabled = false;
+					stopBtn.disabled = true;
+					console.log('Recording stopped...');
+					document.getElementById("liveText").textContent = "";
+				}
+			}
+
+			// Stop recording
+			stopBtn.addEventListener('click', () => {
+				stopRecording();
+			});
+
+
 		</script>
 		<div class="elaborate-tooltip tooltip">
 			<div class="elaborate-button">Elaborate</div><div class="practice-button">Practice</div><div class="test-button">Pop Quiz</div><div class="study-button">Flash Cards</div>
@@ -919,6 +1090,8 @@ Make sure not to put a comma after the last question.`;
 					<label class="tab" for="tab1" id="label1">Book</label>
 					<input type="radio" name="tab" id="tab2">
 					<label class="tab" for="tab2">Chat</label>
+					<input type="radio" name="tab" id="tab7">
+					<label class="tab" for="tab7">LIVE</label>
 					<input type="radio" name="tab" id="tab4">
 					<label class="tab" for="tab4">Practice</label>
 					<input type="radio" name="tab" id="tab6">
@@ -934,7 +1107,7 @@ Make sure not to put a comma after the last question.`;
 					</div>
 					<div class="content2" id="chat">
 						<div class="header" id="chatInputs">
-							<h1>Study Partner</h1>
+							<h1>Study Help</h1>
 							<p>Go ahead and ask a question!</p>
 							<fieldset>
 								<textarea rows="5" style="width: 80%; resize:none;" placeholder="Your question goes here!" id="chatInp"></textarea>
@@ -945,6 +1118,25 @@ Make sure not to put a comma after the last question.`;
 						<br>
 						<div id="chatgohere">
 							Try sending a message!
+						</div>
+					</div>
+					<div class="content7" id="content7">
+						<div class="header">
+							<h1>Live Study</h1>
+							<textarea id="liveInputTest" style="display:none;"></textarea>
+							<button id="liveButton" class="animBtn" style="display:none;">Send</button>
+							<p>Click the start button and begin talking out loud. Live Study will listen and provide you with study resources in realtime. It writes pages and answers questions as you study!</p>
+							<p>NOTE: By default, Live Study will trigger each time you say "Hey Winter". This may be expanded in the future as the technology is refined.</p>
+							<button id="startBtn" class="animBtn">Start Live Study</button>
+							<button id="stopBtn" class="animBtn">Stop Live Study</button>
+							<br>
+							<strong id="liveText"></strong>
+						</div>
+						<div id="liveField">
+
+						</div>
+						<div>
+							<button id="resetLive" class="animBtn2">Reset Live Study</button>
 						</div>
 					</div>
 					<div class="content4" id="content4">
