@@ -1007,9 +1007,6 @@ Make sure not to put a comma after the last question.`;
 					if (event.results[i].isFinal) {
 						speechText += event.results[i][0].transcript;
 						checkText += event.results[i][0].transcript;
-						if (hasDetectedKeyword) {
-							canCheckMessage = true;
-						}
 					} else {
 						interimTranscript += event.results[i][0].transcript;
 					}
@@ -1024,13 +1021,13 @@ Make sure not to put a comma after the last question.`;
 
 			let isInGenerate = false;
 			setInterval(async () => {
-				if (checkText != alreadyChecked && !isInGenerate && hasDetectedKeyword && canCheckMessage) {
-					canCheckMessage = false;
+				if (checkText != alreadyChecked && !isInGenerate && hasDetectedKeyword) {
 					hasDetectedKeyword = false;
 					isInGenerate = true;
 					await writeLiveInput(checkText);
+					isInGenerate = false;
 				}
-				isInGenerate = false;
+				
 			}, 3000); // 15000 milliseconds = 15 seconds
 			
 
