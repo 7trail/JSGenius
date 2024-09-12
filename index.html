@@ -450,6 +450,8 @@
 				console.log(tpcPrompt);
 				status.textContent = "Creating list of pages";
 				let topicResponse = await generateResponse(tpcPrompt, tocModel);
+				topicResponse = topicResponse.text;
+				playSound("noise.wav");
 				let topics = topicResponse.split('\n');
 				topics = topics.filter(n => n);
 				let topicFinal = "<h1>Table of Contents:</h2><br>";
@@ -467,8 +469,9 @@
 				for (const tpc of topics) {
 					console.log(tpc);
 					status.textContent = `Writing page ${i}/${topics.length}`;
-					let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative MARKDOWN-FRIENDLY section for a textbook on ${tpc} in ${topic} geared towards ${complexity}. Write at LEAST ${lengthDict[pageLength]} words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. IMPORTANT: DO NOT INCLUDE THE PAGE TITLE MORE THAN ONCE!!!!! Don't just write a list with a bunch of one-sentence snippets- write full paragraphs, and MAINTAIN THE STYLE AND STRUCTURE OF THE ABOVE BOOK. DO NOT repeat material already covered in previous chapters. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be. If you include blocks of code in your response, do not include their output. A button built into the textbook viewer will show their output for you.`;
+					let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative MARKDOWN-FRIENDLY section for a textbook on '${tpc}' in '${topic}' geared towards ${complexity}. Write at LEAST ${lengthDict[pageLength]} words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. IMPORTANT: DO NOT INCLUDE THE PAGE TITLE MORE THAN ONCE!!!!! Don't just write a list with a bunch of one-sentence snippets- write full paragraphs, and MAINTAIN THE STYLE AND STRUCTURE OF THE ABOVE BOOK. DO NOT repeat material already covered in previous chapters. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be. If you include blocks of code in your response, do not include their output. A button built into the textbook viewer will show their output for you.`;
 					let page = await generateResponse(pagePrompt);
+					page = resolveCitations(page);
 					addToBook(tpc,converter.makeHtml(page));
 					playSound("noise.wav");
 					i+=1;
@@ -478,6 +481,7 @@
 					status.textContent = "Adding Glossary";
 					let pagePrompt = fullBook() + `Above is the full contents of the chapter until now. Write a glossary for terms used in the above, using a markdown unordered list. Write all key terms. DO NOT write any more than the glossary.`;
 					let page = await generateResponse(pagePrompt);
+					page = page.text;
 					playSound("noise.wav");
 					addToBook("Glossary",converter.makeHtml(page));
 				}
@@ -497,6 +501,7 @@ Make sure not to put a comma after the last question.`;
 				setGrade("");
 				status.textContent = "Creating exam";
 				let response = await generateResponse(prompt);
+				response = response.text;
 				playSound("noise.wav");
 				response = "["+response+"]";
 				console.log(response);
@@ -515,6 +520,7 @@ Make sure not to put a comma after the last question.`;
 
 				status.textContent = "Creating flashcards";
 				let response = await generateResponse(prompt);
+				response = response.text;
 				playSound("noise.wav");
 				response = "["+response+"]";
 				console.log(response);
@@ -536,9 +542,40 @@ Make sure not to put a comma after the last question.`;
 				status.textContent = `Adding page`;
 				let pagePrompt = book + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative section for a textbook on ${tpc} geared towards ${complexity}. Write at LEAST ${lengthDict[pageLength]} words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. DO NOT repeat material already covered in previous chapters. IMPORTANT: DO NOT INCLUDE THE PAGE TITLE MORE THAN ONCE!!!!! Don't just write a list with a bunch of one-sentence snippets- write full paragraphs, and MAINTAIN THE STYLE AND STRUCTURE OF THE ABOVE BOOK. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be.`;
 				let page = await generateResponse(pagePrompt, model);
+				page = resolveCitations(page);
 				playSound("noise.wav");
 				addToBook(tpc,converter.makeHtml(page));
 				status.textContent = `Done!`;
+			}
+
+			String.prototype.insert = function(index, string) {
+				if (index > 0)
+				{
+					return this.substring(0, index) + string + this.substring(index, this.length);
+				}
+
+				return string + this;
+			};
+
+			function resolveCitations(data) {
+				let txt = data.text;
+				let citations = data["citations"].citationSources;
+				let total = 0;
+				if (citations != null && citations.length > 0) {
+					for (const cit of citations) {
+						txt.insert(cit.endIndex+total, `[^${total+1}]`);
+						total += 1;
+					}
+				}
+
+				if (total > 0) {
+					txt += "\n\n## <u>Sources:</u>\n";
+					for (const cit of citations) {
+						txt += "- " + cit.uri + "\n";
+					}
+				}
+
+				return txt;
 			}
 			
 			async function generateResponse(prompt, mdl, depth) {
@@ -553,23 +590,14 @@ Make sure not to put a comma after the last question.`;
 				let contents = "";
 				refreshModel();
 				try {
-					console.log(prompt);
-					/*const result = await mdl.generateContentStream(prompt);
+					//console.log(prompt);
+					let respo = await mdl.generateContent(prompt);
+					respo = respo.response;
 					
-					// Print text as it comes in.
-					for await (const chunk of result.stream) {
-						//console.log(chunk);
-						try {
-							const chunkText = chunk.text();
-						contents += chunkText;
-						} catch {}
-						
-					}*/API_KEY
-					const result = (await mdl.generateContent(prompt)).response.text();
-					contents = result;
-					console.log("**********RESULT*********\n\n\n\n\n\n");
-					console.log(result);
-					//console.log("getting here!" + contents);
+					//const result = respo.text();
+					contents = respo;
+					//console.log("**********RESULT*********\n\n\n\n\n\n");
+					console.log(respo);
 				} catch (error) {
 					console.log(error);
 					if (depth < 3) {
@@ -580,7 +608,7 @@ Make sure not to put a comma after the last question.`;
 					}
 				}
 				
-				return contents;
+				return {"contents":contents, "text":contents.text(), "citations":contents.candidates[0].citationMetadata};
 			}
 
 			function closeCodeTooltip() {
@@ -926,6 +954,7 @@ Make sure not to put a comma after the last question.`;
 				let finalConvo = fullConvo.replace(alreadyChecked,"This is the already-checked part of the conversation:"+alreadyChecked+"\n\nTHIS IS THE NEW PART OF THE CONVERSATION\n\n");
 				alreadyChecked = fullConvo;
 				let response = await generateResponse(finalConvo + "\n\nAbove is a conversation between my study group. Your job is to list all topics you are asked to include. When you encounter the keyword 'hey winter,' or variations of it, immediately begin compiling all the topics mentioned after this keyword. ex: 'winter, put picking food on the list' would be on the list, but 'we need to talk about eating food' would not, because it doesn't mention Winter (your name). I repeat, ONLY INCLUDE TOPICS WHEN SPOKEN TO BY NAME. Include up to twenty elements in your response." + formatInstructions + exclusionInstructions + JSON.stringify(topicList) + "\n\n If no new topics were discussed, OR all new topics are redundant, just output '[]' for an empty array.", jsonMdl);
+				response = response.text;
 				playSound("noise.wav");
 				if (!response.startsWith("[")) {
 					response = "[" + response + "]";
@@ -1011,6 +1040,7 @@ Make sure not to put a comma after the last question.`;
 							newDivs[i].appendChild(writing);
 							let pr = `Full Conversation: \n\n${fullConvo}\n\nContext: ${json[i].topic}\n\n${json[i].response}\n\nYour job is to provide what the user needs (a ${json[i].topic}), based on the context and conversation. Your job is to write, SOLELY, that one element. Answer the user's question in-depth, or write what they request, using at least 500 words to do so.`;
 							let resp = await generateResponse(pr,chatModel);
+							resp = resolveCitations(resp);
 							playSound("noise.wav");
 							addToBook(json[i].topic,resp);
 							newDivs[i].removeChild(writing);
@@ -1406,11 +1436,11 @@ Make sure not to put a comma after the last question.`;
 						<ul>
 							<li><strong>LIVE STUDY MODE! (Working now!)</strong> Live Study is a new, highly experimental feature that interacts with you directly while you study. Just leave it on and talk to it like you would a person. (It's name is Winter!)</li>
 							<li>Live Study can, in realtime, write pages, answer questions, and produce study resources as requested.</li>
-							<li>Substantial QOL changes to improve the user experience.</li>
+							<li>Certain features will now generate citations for works cited (needs to be improved, currently relying on the finicky Gemini citation system).</li>
+							<li>The Chat UI was completely overhauled to keep context of all prior discussions</li>
 							<li>Users can now save and load JSON files storing their book.</li>
-							<li>The color scheme for the UI was redone to better maintain consistency.</li>
-							<li>Further UI changes to improve consistency. Many features were relocated.</li>
-							<li>Additional prompting changes for many features.</li>
+							<li>Substantial QOL changes to improve the user experience.</li>
+							<li>The color scheme for the UI was redone to be more consistent (and prettier).</li>
 						</ul>
 						<p>A.P. 9/10/2024</p>
 					</div>
