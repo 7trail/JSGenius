@@ -28,6 +28,7 @@
 		<!-- Import @google/generative-ai, as shown above. -->
 		<script type="module">
 			import { HarmBlockThreshold, HarmCategory, GoogleGenerativeAI } from "@google/generative-ai";
+			import * as jsonrepair from 'https://esm.run/jsonrepair';
 			// Default export is a4 paper, portrait, using millimeters for units
 			// Fetch your API_KEY
 
@@ -499,7 +500,7 @@ Make sure not to put a comma after the last question.`;
 				playSound("noise.wav");
 				response = "["+response+"]";
 				console.log(response);
-				let json = JSON.parse(response);
+				let json = JSON.parse(jsonrepair.jsonrepair(response));
 				examDict = json;
 				console.log(examDict);
 				status.textContent = "Done!";
@@ -1103,7 +1104,7 @@ Make sure not to put a comma after the last question.`;
 									analyser.getByteFrequencyData(array);
 									const arraySum = array.reduce((a, value) => a + value, 0);
 									const average = arraySum / array.length;
-									console.log(Math.round(average));
+									//console.log(Math.round(average));
 									// colorPids(average);
 									if (isRecording) {
 										document.getElementById("liveMeter").style.width = `${average}%`;
