@@ -898,6 +898,10 @@ Make sure not to put a comma after the last question.`;
 				recognition = new SpeechRecognition();
 				recognition.continuous = true;
 				recognition.interimResults = true;
+
+				recognition.addEventListener('end', () => {
+					recognition.start();
+				});
 			}
 			// DOM elements
 			const startBtn = document.getElementById('startBtn');
@@ -1049,7 +1053,9 @@ Make sure not to put a comma after the last question.`;
 						await writeLiveInput(checkText);
 						isInGenerate = false;
 					}
-					
+					if (recognition != null) {
+						recognition.continuous = true;
+					}
 				}, 3000); // 15000 milliseconds = 15 seconds
 			}
 
