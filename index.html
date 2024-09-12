@@ -919,6 +919,7 @@ Make sure not to put a comma after the last question.`;
 			let check = 0;
 			async function writeLiveInput(data) {
 				let fullConvo = data;
+				document.getElementById("liveText").textContent = "Responding...";
 				let finalConvo = fullConvo.replace(alreadyChecked,"This is the already-checked part of the conversation:"+alreadyChecked+"\n\nTHIS IS THE NEW PART OF THE CONVERSATION\n\n");
 				alreadyChecked = fullConvo;
 				let response = await generateResponse(finalConvo + "\n\nAbove is a conversation between my study group. Your job is to list all topics you are asked to include. When you encounter the keyword 'hey winter,' or variations of it, immediately begin compiling all the topics mentioned after this keyword. ex: 'winter, put picking food on the list' would be on the list, but 'we need to talk about eating food' would not, because it doesn't mention Winter (your name). I repeat, ONLY INCLUDE TOPICS WHEN SPOKEN TO BY NAME. Include up to twenty elements in your response." + formatInstructions + exclusionInstructions + JSON.stringify(topicList) + "\n\n If no new topics were discussed, OR all new topics are redundant, just output '[]' for an empty array.", jsonMdl);
@@ -930,9 +931,6 @@ Make sure not to put a comma after the last question.`;
 				let json = JSON.parse(jsonrepair.jsonrepair(response));
 
 				let lst = document.getElementById("liveField");
-
-				document.getElementById("liveText").textContent = "Responding...";
-
 
 				let newDivs = [];
 				for (let i = 0; i < json.length; i++) {
@@ -984,6 +982,10 @@ Make sure not to put a comma after the last question.`;
 				}
 
 				document.getElementById("resetLiveDiv").style.display = "block";
+
+				if (json.length > 0 && document.getElementById("tab7").checked) {
+					newDivs[json.length-1].scrollIntoView({ behavior: 'smooth', block: 'start' });
+				}
 
 				document.getElementById("liveText").textContent = "Writing Pages...";
 				for (let i = 0; i < json.length; i++) {
@@ -1108,7 +1110,7 @@ Make sure not to put a comma after the last question.`;
 									// colorPids(average);
 									if (isRecording) {
 										document.getElementById("liveMeter").style.width = `${average}%`;
-										document.getElementById("liveMeter").style.backgroundColor = hasDetectedKeyword ? "lightblue": "navy";
+										document.getElementById("liveMeter").style.backgroundColor = hasDetectedKeyword ? "navy" : "white";
 									}
 								};
 							})
@@ -1305,12 +1307,12 @@ Make sure not to put a comma after the last question.`;
 							<br>
 							<strong id="liveText"></strong>
 						</div>
-						<div id="animatedBar">
-							<div id="liveMeter"></div>
-						</div>
 						<div id="debugLiveTranscript" class="debug"></div>
 						<div id="liveField">
 
+						</div>
+						<div id="animatedBar">
+							<div id="liveMeter"></div>
 						</div>
 						<div class="centerDiv" id="resetLiveDiv" style="display:none;">
 							<button id="resetLive" class="animBtn2">Reset Live Study</button>
