@@ -360,7 +360,7 @@ label.tab {
     border-color: #999999;
 }
 
-#tab7:checked.live+label {
+#tab7.live+label {
 	border-color: red;
 }
 
