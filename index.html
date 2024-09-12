@@ -875,8 +875,8 @@ Make sure not to put a comma after the last question.`;
 			Set the intent to "PAGE" if the users need lengthy information or details on a topic. 
 			Set the intent to "STUDY" if the users asks for study aides, quizzes, flashcards, or similar. 
 			Set the intent to "DOCUMENT" if the user needs a document written, or needs examples: i.e. a resume, a summary of a book, etc.
-			Set the intent to "FEEDBACK" if the user says something conversational, or simply wants to take note of something.
-			The response is a 100-words-or-less statement, responding to their query for assistance. If relevant, encourage the user to continue your interaction.`;
+			Set the intent to "FEEDBACK" if the user says something conversational, or simply wants to take note of something. Short questions (usually yes, no, or one-or-the-other) should ALWAYS be FEEDBACK.
+			The response is a 100-words-or-less statement, answering their question.`;
 
 			let exclusionInstructions = ` Below is an EXISTING JSON list of topics. These topics are already accounted for. DO NOT include these topics in your output; only write JSON for NEW topics that appear: \n\n`;
 
