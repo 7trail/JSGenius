@@ -1,3 +1,8 @@
+:root {
+	--bar-color: blue;
+}
+  
+
 .wrapper {
   display: flex;
   justify-content: space-between;
@@ -355,7 +360,7 @@ label.tab {
     border-color: #999999;
 }
 
-#tab7.live {
+#tab7:checked.live+label {
 	border-color: red;
 }
 
@@ -664,6 +669,25 @@ fieldset > button {
 		height: 300px;
 	}
 }*/
+
+#animatedBar {
+	border-radius: 10px;
+	background-color: #c3f1ff;
+	width: 90%;
+	margin: auto;
+	display:block;
+	text-align:center;
+}
+
+#liveMeter {
+	width: 0;
+	height: 10px;
+	margin: 10px;
+	border-radius: 5px;
+	background-color: navy;
+	text-align:center;
+	margin: auto;
+}
 
 @media (max-width: 600px) {
    .wrapper {

@@ -15,6 +15,7 @@
 		<link rel="stylesheet" href="styles.css">
 		<link rel="stylesheet" href="styles/default.min.css">
 		<script src="highlight.min.js"></script>
+		<script src="volume-meter.js"></script>
 		<script src="skulpt/skulpt.min.js"></script> 
 		<script src="skulpt/skulpt-stdlib.js"></script> 
 		<link rel="preconnect" href="https://fonts.googleapis.com">
@@ -552,7 +553,7 @@ Make sure not to put a comma after the last question.`;
 				refreshModel();
 				try {
 					console.log(prompt);
-					const result = await mdl.generateContentStream(prompt);
+					/*const result = await mdl.generateContentStream(prompt);
 					
 					// Print text as it comes in.
 					for await (const chunk of result.stream) {
@@ -562,11 +563,14 @@ Make sure not to put a comma after the last question.`;
 						contents += chunkText;
 						} catch {}
 						
-					}
-					//console.log("**********RESULT*********\n\n\n\n\n\n");
-					//console.log(result);
+					}*/API_KEY
+					const result = (await mdl.generateContent(prompt)).response.text();
+					contents = result;
+					console.log("**********RESULT*********\n\n\n\n\n\n");
+					console.log(result);
 					//console.log("getting here!" + contents);
 				} catch (error) {
+					console.log(error);
 					if (depth < 3) {
 						contents = generateResponse(prompt,mdl, depth+1);
 					}
@@ -880,8 +884,21 @@ Make sure not to put a comma after the last question.`;
 
 			let alreadyChecked = "";
 
+			const isFirefox = navigator.userAgent.toLowerCase().includes('firefox');
+
+			if (isFirefox) {
+				document.getElementById("liveModeButtons").style.display = "none";
+				document.getElementById("liveModeWarning").style.display="block";
+			}
+
 			const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-			const recognition = new SpeechRecognition();
+			let recognition;
+
+			if (!isFirefox) {
+				recognition = new SpeechRecognition();
+				recognition.continuous = true;
+				recognition.interimResults = true;
+			}
 			// DOM elements
 			const startBtn = document.getElementById('startBtn');
 			const stopBtn = document.getElementById('stopBtn');
@@ -892,8 +909,7 @@ Make sure not to put a comma after the last question.`;
 			let speechText = '';
 
 			// Enable continuous recognition
-			recognition.continuous = true;
-			recognition.interimResults = true;
+			
 
 			let check = 0;
 			async function writeLiveInput(data) {
@@ -999,37 +1015,43 @@ Make sure not to put a comma after the last question.`;
 			document.getElementById("liveButton").addEventListener("click", async function () {
 				await writeLiveInput(document.getElementById("liveInputTest").value);
 			});
+			if (!isFirefox) {
+				recognition.onresult = async (event) => {
+					
+					let interimTranscript = '';
+					for (let i = event.resultIndex; i < event.results.length; i++) {
+						if (event.results[i].isFinal) {
+							speechText += event.results[i][0].transcript;
+							checkText += event.results[i][0].transcript;
+						} else {
+							interimTranscript += event.results[i][0].transcript;
+						}
+					}
 
-			recognition.onresult = async (event) => {
-				
-				let interimTranscript = '';
-				for (let i = event.resultIndex; i < event.results.length; i++) {
-					if (event.results[i].isFinal) {
-						speechText += event.results[i][0].transcript;
-						checkText += event.results[i][0].transcript;
-					} else {
-						interimTranscript += event.results[i][0].transcript;
+					document.getElementById("debugLiveTranscript").innerHTML = `${speechText}<i>${interimTranscript}</i>`;
+
+					if (interimTranscript.toLocaleLowerCase().includes("winter")) {
+						hasDetectedKeyword = true;
+					}
+
+					if (hasDetectedKeyword && speechTranscript.toLocaleLowerCase().includes("winter")) {
+						speechText = "";
+						canCheckMessage = true;
 					}
 				}
 
-				document.getElementById("debugLiveTranscript").innerHTML = `${speechText}<i>${interimTranscript}</i>`;
-
-				if (interimTranscript.toLocaleLowerCase().includes("winter")) {
-					hasDetectedKeyword = true;
-				}
+				let isInGenerate = false;
+				setInterval(async () => {
+					if (checkText != alreadyChecked && !isInGenerate && hasDetectedKeyword && canCheckMessage) {
+						hasDetectedKeyword = false;
+						isInGenerate = true;
+						canCheckMessage = false;
+						await writeLiveInput(checkText);
+						isInGenerate = false;
+					}
+					
+				}, 3000); // 15000 milliseconds = 15 seconds
 			}
-
-			let isInGenerate = false;
-			setInterval(async () => {
-				if (checkText != alreadyChecked && !isInGenerate && hasDetectedKeyword) {
-					hasDetectedKeyword = false;
-					isInGenerate = true;
-					await writeLiveInput(checkText);
-					isInGenerate = false;
-				}
-				
-			}, 3000); // 15000 milliseconds = 15 seconds
-			
 
 			document.getElementById("resetLive").addEventListener("click", function () {
 				topicList = "";
@@ -1039,6 +1061,8 @@ Make sure not to put a comma after the last question.`;
 				}
 				document.getElementById("resetLiveDiv").style.display = "none";
 			})
+
+			let hasBegunBar = false;
 			// Start recording
 			startBtn.addEventListener('click', () => {
 				if (!isRecording) {
@@ -1049,6 +1073,43 @@ Make sure not to put a comma after the last question.`;
 					console.log('Recording started...');
 					document.getElementById("liveText").textContent = "Idle...";
 					document.getElementById("tab7").classList.add("live");
+
+					if (!hasBegunBar) {
+						hasBegunBar = true;
+						navigator.mediaDevices.getUserMedia({
+							audio: true,
+							video: false
+							})
+							.then(function(stream) {
+								const audioContext = new AudioContext();
+								const analyser = audioContext.createAnalyser();
+								const microphone = audioContext.createMediaStreamSource(stream);
+								const scriptProcessor = audioContext.createScriptProcessor(2048, 1, 1);
+
+								analyser.smoothingTimeConstant = 0.8;
+								analyser.fftSize = 1024;
+
+								microphone.connect(analyser);
+								analyser.connect(scriptProcessor);
+								scriptProcessor.connect(audioContext.destination);
+								scriptProcessor.onaudioprocess = function() {
+									const array = new Uint8Array(analyser.frequencyBinCount);
+									analyser.getByteFrequencyData(array);
+									const arraySum = array.reduce((a, value) => a + value, 0);
+									const average = arraySum / array.length;
+									console.log(Math.round(average));
+									// colorPids(average);
+									if (isRecording) {
+										document.getElementById("liveMeter").style.width = `${average}%`;
+										document.getElementById("liveMeter").style.backgroundColor = hasDetectedKeyword ? "lightblue": "navy";
+									}
+								};
+							})
+							.catch(function(err) {
+								/* handle the error */
+								console.error(err);
+							});
+					}
 				}
 			});
 
@@ -1098,13 +1159,7 @@ Make sure not to put a comma after the last question.`;
 				}
 			});
 
-			const isFirefox = navigator.userAgent.toLowerCase().includes('firefox');
-
-			if (isFirefox) {
-				document.getElementById("liveModeButtons").style.display = "none";
-				document.getElementById("liveModeWarning").style.display="block";
-			}
-
+			
 		</script>
 		<div class="elaborate-tooltip tooltip">
 			<div class="elaborate-button">Elaborate</div><div class="practice-button">Practice</div><div class="test-button">Pop Quiz</div><div class="study-button">Flash Cards</div>
@@ -1237,11 +1292,14 @@ Make sure not to put a comma after the last question.`;
 								<button id="startBtn" class="animBtn">Start Live Study</button>
 								<button id="stopBtn" class="animBtn">Stop Live Study</button>
 							</div>
-							<div id="liveModeWarning">
+							<div id="liveModeWarning" style="display:none;">
 								<p>At this time, Live Study does not work in Firefox. We're looking into ways to change that. In the meantime, switch to Chrome, Edge, or Safari.</p>
 							</div>
 							<br>
 							<strong id="liveText"></strong>
+						</div>
+						<div id="animatedBar">
+							<div id="liveMeter"></div>
 						</div>
 						<div id="debugLiveTranscript" class="debug"></div>
 						<div id="liveField">
