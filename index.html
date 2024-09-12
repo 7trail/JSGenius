@@ -518,7 +518,7 @@ Make sure not to put a comma after the last question.`;
 				playSound("noise.wav");
 				response = "["+response+"]";
 				console.log(response);
-				let json = JSON.parse(response);
+				let json = JSON.parse(jsonrepair.jsonrepair(response));
 				flashcards = json;
 				console.log(flashcards);
 				status.textContent = "Done!";
@@ -927,7 +927,7 @@ Make sure not to put a comma after the last question.`;
 					response = "[" + response + "]";
 				}
 				console.log(response);
-				let json = JSON.parse(response);
+				let json = JSON.parse(jsonrepair.jsonrepair(response));
 
 				let lst = document.getElementById("liveField");
 
