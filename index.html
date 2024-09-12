@@ -1034,7 +1034,7 @@ Make sure not to put a comma after the last question.`;
 						hasDetectedKeyword = true;
 					}
 
-					if (hasDetectedKeyword && speechTranscript.toLocaleLowerCase().includes("winter")) {
+					if (hasDetectedKeyword && speechText.toLocaleLowerCase().includes("winter")) {
 						speechText = "";
 						canCheckMessage = true;
 					}
