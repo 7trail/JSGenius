@@ -80,7 +80,9 @@ background-color: #ccc;
 
 #body,.section {
   background-color: #fafafa;
-  border: 3px solid black;
+  border-width: 4px;
+  border-style: solid;
+  border-image: linear-gradient(to bottom, #d08fff 0%, #9a0fff 100%) 1;
   border-radius : 10px;
 }
 
@@ -230,7 +232,7 @@ body {
 
 .animBtn {
 	
-	background: linear-gradient(120deg, #81F4E1, #56CBF9, #81F4E1);
+	background: linear-gradient(120deg, #caebf1, #5ce0ec, #caebf1);
 	background-size: 200% 100%;
 	background-position: 100% 0;
 	transition: background-position .5s;
@@ -239,7 +241,7 @@ body {
 
 .animBtn2 {
 	
-	background: linear-gradient(120deg, pink, #ff6666, pink);
+	background: linear-gradient(120deg, #ebd1c3, #dc431d, #ebd1c3);
 	background-size: 200% 100%;
 	background-position: 100% 0;
 	transition: background-position .5s;
@@ -266,7 +268,7 @@ body {
 
 
 body {
-    background: linear-gradient(231deg, #00c510, #57acff);
+    background: linear-gradient(231deg, #5ce0ec, #eaa3ff);
     background-size: 400% 400%;
 
     -webkit-animation: background 40s ease infinite;
@@ -674,7 +676,10 @@ fieldset > button {
 	border-radius: 10px;
 	background-color: #c3f1ff;
 	width: 90%;
-	margin: auto;
+	margin-top: 10px;
+	margin-bottom: 10px;
+	margin-left: auto;
+	margin-right: auto;
 	display:block;
 	text-align:center;
 }

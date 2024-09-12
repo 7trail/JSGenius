@@ -105,7 +105,7 @@
 			const modelId="gemini-1.5-flash-exp-0827";
 			var tocModel = genAI.getGenerativeModel({ model: modelId, systemInstruction: `You write table of contents sections for a textbook. You are given a topic and number of pages and and include EXACTLY that many pages- no more, no less. You do not specify the number of pages or page numbers for any given section, only the order they are included.`, safetySettings});
 			var model = genAI.getGenerativeModel({ model: modelId, systemInstruction: `You write textbooks and sections for textbooks and are ${tone}. Don't repeat yourself in your books.`, safetySettings});
-			var chatModel = genAI.getGenerativeModel({ model: modelId, systemInstruction: `You are detailed, conversational, helpful`, safetySettings});
+			var chatModel = genAI.getGenerativeModel({ model: modelId, systemInstruction: `You are Winter, created by JSGenius to assist people with learning. You are detailed, conversational, helpful`, safetySettings});
 			var practiceModel = genAI.getGenerativeModel({ model: modelId, systemInstruction: `You write practice problems for textbooks.`, safetySettings});
 			var jsonMdl = genAI.getGenerativeModel({ model: modelId, systemInstruction: `You write JSON with no formatting. Your personality is conversational, friendly.`, safetySettings});
 			var body;
@@ -738,12 +738,13 @@ Make sure not to put a comma after the last question.`;
 				elabTooltip.style.display = "none";
 			}
 			
-			const chatButton = document.getElementById("chatButton");
-			chatButton.addEventListener("click", async function() {
-				let text = document.getElementById("chatInp").value;
-				let lastChat = document.getElementById("chatgohere").textContent;
-				let pr = `${text}\n\nRespond to the above message. Be thorough and detailed and include at least ${lengthDict[document.getElementById("writeLength").value]/2} words. Refer back to the contents of the below book and the prior chat, if any: BOOK CONTENTS: \n\n${fullBook()} \n\n CHAT CONTENTS: \n\n${lastChat}`;
-				document.getElementById("chatgohere").innerHTML = `<h1>Awaiting response...</h1>`;
+			async function addToChat(pr, originalStatement) {
+				let dv = document.getElementById("chatgohere");
+				let newDiv = document.createElement("div");
+				newDiv.classList.add("liveDiv");
+				dv.insertBefore(newDiv, dv.firstChild);
+				newDiv.innerHTML = `<h2>Awaiting response...</h2>`;
+				document.getElementById("tab2").click();
 				window.scrollTo({ top: 0, behavior: 'smooth' });
 				const result = await chatModel.generateContentStream(pr);
 				let contents = "";
@@ -751,30 +752,32 @@ Make sure not to put a comma after the last question.`;
 				for await (const chunk of result.stream) {
 					const chunkText = chunk.text();
 					contents += chunkText;
-					document.getElementById("chatgohere").innerHTML = converter.makeHtml(contents);
+					newDiv.innerHTML = converter.makeHtml(contents);
 				}
+				newDiv.innerHTML += `<p><i>${originalStatement}</i></p>`
 				playSound("noise.wav");
 				updateCodeBlocks();
+			}
+
+			const chatButton = document.getElementById("chatButton");
+			chatButton.addEventListener("click", async function() {
+				let text = document.getElementById("chatInp").value;
+				let lastChat = document.getElementById("chatgohere").textContent;
+				let pr = `${text}\n\nRespond to the above message. Be thorough and detailed and include at least ${lengthDict[document.getElementById("writeLength").value]/2} words. Refer back to the contents of the below book and the prior chat, if any: BOOK CONTENTS: \n\n${fullBook()} \n\n CHAT CONTENTS: \n\n${lastChat}`;
+				await addToChat(pr,"Original Question: " + text);
 			});
 			
 			const elabButton = document.querySelector(".elaborate-button");
 			elabButton.addEventListener("mousedown", async function() {
 				const selection = window.getSelection();
 				const selectedText = selection.toString();
+				let lastChat = document.getElementById("chatgohere").textContent;
 				let pr = `${selectedText} \n\n Elaborate on the above text. Provide details and include at least ${lengthDict[document.getElementById("writeLength").value]} words. Be thorough. Refer back to the contents of the below book: \n\n${fullBook()}`;
-				document.getElementById('tab2').click();
-				document.getElementById("chatgohere").innerHTML = `<h1>Elaborating...</h1>`;
-				window.scrollTo({ top: 0, behavior: 'smooth' });
-				const result = await chatModel.generateContentStream(pr);
-				let contents = "";
-				// Print text as it comes in. This is a deviation from the standard function.
-				for await (const chunk of result.stream) {
-					const chunkText = chunk.text();
-					contents += chunkText;
-					document.getElementById("chatgohere").innerHTML = converter.makeHtml(contents);
+				let t = selectedText;
+				if (t.length > 20) {
+					t = t.substring(0,17)+"...";
 				}
-				playSound("noise.wav");
-				updateCodeBlocks();
+				await addToChat(pr, "Elaboration of " + t);
 			});
 			
 			async function createFreeformPractice(pr) {
@@ -1184,7 +1187,9 @@ Make sure not to put a comma after the last question.`;
 					<div class="section">
 						<div id="fields">
 						<h1>AI Textbooks</h1>
-						
+						<div id="animatedBar">
+							<div id="liveMeter"></div>
+						</div>
 						<label for="imp">Chapter Topic:</label>
 						<br>
 						<textarea rows="5" style=" width: 90%; resize:none;" maxlength="180" placeholder="Prompt goes here..." id="inp"></textarea>
@@ -1285,9 +1290,7 @@ Make sure not to put a comma after the last question.`;
 							</fieldset>
 						</div>
 						<br>
-						<div id="chatgohere">
-							Try sending a message!
-						</div>
+						<div id="chatgohere"></div>
 					</div>
 					<div class="content7" id="content7">
 						<div class="header">
@@ -1311,9 +1314,7 @@ Make sure not to put a comma after the last question.`;
 						<div id="liveField">
 
 						</div>
-						<div id="animatedBar">
-							<div id="liveMeter"></div>
-						</div>
+						
 						<div class="centerDiv" id="resetLiveDiv" style="display:none;">
 							<button id="resetLive" class="animBtn2">Reset Live Study</button>
 						</div>
@@ -1403,9 +1404,11 @@ Make sure not to put a comma after the last question.`;
 						<br>
 						<h2>Changelog</h2>
 						<ul>
-							<li><strong>LIVE STUDY MODE!</strong> Live Study is a new, highly experimental feature that interacts with you directly while you study. Just leave it on and talk to it like you would a person. (It's name is Winter!)</li>
+							<li><strong>LIVE STUDY MODE! (Working now!)</strong> Live Study is a new, highly experimental feature that interacts with you directly while you study. Just leave it on and talk to it like you would a person. (It's name is Winter!)</li>
+							<li>Live Study can, in realtime, write pages, answer questions, and produce study resources as requested.</li>
 							<li>Substantial QOL changes to improve the user experience.</li>
 							<li>Users can now save and load JSON files storing their book.</li>
+							<li>The color scheme for the UI was redone to better maintain consistency.</li>
 							<li>Further UI changes to improve consistency. Many features were relocated.</li>
 							<li>Additional prompting changes for many features.</li>
 						</ul>
