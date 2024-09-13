@@ -1,5 +1,7 @@
 :root {
 	--bar-color: blue;
+	--element-bg-1: #e3dafd;
+	--element-bg-2: #ba63bd;
 }
   
 
@@ -80,7 +82,7 @@ background-color: #ccc;
 }
 
 #body,.section {
-  background-color: #fafafa;
+  background-color: #f4f4f4;
   border-width: 4px;
   border-style: solid;
   border-image: linear-gradient(to bottom, #d08fff 0%, #9a0fff 100%) 1;
@@ -270,12 +272,12 @@ body {
 
 
 body {
-    background: linear-gradient(231deg, #5ce0ec, #eaa3ff);
-    background-size: 400% 400%;
+    background: repeating-linear-gradient(to right, #5ce0ec, #eaa3ff,#5ce0ec);
+    background-size: 200% 200%;
 
     -webkit-animation: background 40s ease infinite;
     -moz-animation: background 40s ease infinite;
-    animation: background 40s ease infinite;
+    animation: background 40s linear infinite;
 }
 
 pre > code {
@@ -285,19 +287,19 @@ pre > code {
 }
 
 @-webkit-keyframes background {
-    0%{background-position:0% 94%}
-    50%{background-position:100% 7%}
-    100%{background-position:0% 94%}
+    0%{background-position:0% 0%}
+    50%{background-position:100% 0%}
+    100%{background-position:200% 0%}
 }
 @-moz-keyframes background {
-    0%{background-position:0% 94%}
-    50%{background-position:100% 7%}
-    100%{background-position:0% 94%}
+    0%{background-position:0% 0%}
+    50%{background-position:100% 0%}
+    100%{background-position:200% 0%}
 }
 @keyframes background {
-    0%{background-position:0% 94%}
-    50%{background-position:100% 7%}
-    100%{background-position:0% 94%}
+    0%{background-position:0% 0%}
+    50%{background-position:100% 0%}
+    100%{background-position:200% 0%}
 }
 
 .content1, .content2, .content3,
@@ -330,38 +332,38 @@ label.tab {
 	padding-left: 5px;
 	padding-right: 5px;
     height: 30px;
-    background-color: #dddddd;
+    background-color: var(--element-bg-1);
     border-style: solid solid none solid;
     border-width: 2px;
     border-color: transparent;
 }
 
 #tab1:checked+label {
-    border-color: #999999;
+    border-color: var(--element-bg-2);
 }
 
 #tab2:checked+label {
-    border-color: #999999;
+    border-color: var(--element-bg-2);
 }
 
 #tab3:checked+label {
-    border-color: #999999;
+    border-color: var(--element-bg-2);
 }
 
 #tab4:checked+label {
-    border-color: #999999;
+    border-color: var(--element-bg-2);
 }
 
 #tab5:checked+label {
-    border-color: #999999;
+    border-color: var(--element-bg-2);
 }
 
 #tab6:checked+label {
-    border-color: #999999;
+    border-color: var(--element-bg-2);
 }
 
 #tab7:checked+label {
-    border-color: #999999;
+    border-color: var(--element-bg-2);
 }
 
 #tab7.live+label {
@@ -415,14 +417,14 @@ label.tab {
 	padding: 0 10px 5px 10px;
 	border: 2px solid lightgray;
 	border-radius: 10px;
-	box-shadow: 0px 0px 15px gray;
 	
 }
 
 .header {
 	text-align: center;
 	margin-bottom: 10px;
-	background-color: #dddddd;
+	background-color: lightgray;
+	box-shadow: 0px 0px 15px lightgray;
 	border-radius: 10px;
 	padding: 10px;
 }
@@ -654,6 +656,7 @@ fieldset > button {
 	border-radius: 10px;
 	border: 2px solid #aaaaaa;
 	margin-bottom: 10px;
+	box-shadow: 0px 0px 15px #eeeeee;
 	padding: 5px;
 }
 

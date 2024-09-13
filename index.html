@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>Textbook Helper</title>
+		<title>Winter - AI Learning Tools</title>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<script type="importmap">
@@ -121,6 +121,29 @@
 			
 			let flashcards = [];
             let currentCardIndex = 0;
+
+			let responsesMissed = 0;
+			let defaultTitle = "Winter - AI Learning Tools";
+
+			function setTitle(title) {
+				document.title = title;
+			}
+
+			function attemptTitleChange() {
+				if (document.hasFocus()) {
+					return;
+				}
+
+				responsesMissed += 1;
+				document.title = `(${responsesMissed}) - Winter - AI Learning Tools`;
+			}
+
+
+
+			window.addEventListener("focus", function() {
+				setTitle(defaultTitle);
+				responsesMissed = 0;
+			})
 
 			function mobileAndTabletCheck() {
 				let check = false;
@@ -297,6 +320,8 @@
 
 					updateCodeBlocks();
 				});
+
+				attemptTitleChange();
 			}
 
 			function checkPracticeExam() {
@@ -356,6 +381,9 @@
 			}
 			
 			function playSound(url) {
+				if (isRecording && docment.getElementById("quietCheck").checked) {
+					return;
+				}
 			  const audio = new Audio(url);
 			  audio.play();
 			}
@@ -441,11 +469,22 @@
 			async function generateBook() {
 				let topic = textbox.value.trim();
 				let complexity = document.getElementById("writeComplexity").value;
+				
 				if (topic == "") {
 					alert("Please provide a prompt! Example: How to write Python code");
 					return;
 				}
-				resetBook();
+
+				document.getElementById("btn").disabled = true;
+				document.getElementById("newPageButton").disabled = true;
+
+				let doReset = true;
+				if (Object.keys(bookDict).length > 0) {
+					doReset = confirm("You already have a book. If you would like to overwrite it, click 'OK'. Otherwise, you'll keep your existing contents and add onto it.")
+				}
+				if (doReset) {
+					resetBook();
+				}
 				
 				let tpcPrompt = `Write a list of ${document.getElementById("quantity").value} topics relating to ${topic}. Include EXACTLY as many topics (${document.getElementById("quantity").value}) as requested, no more or less. The topics chosen should be ${complexity} in nature but ALWAYS relevant. Do not include a title or header for the list or any extra newlines. Only include the list elements with numbers. Use ONLY ASCII-safe characters. The first page should ALWAYS be a page talking broadly about the concept. Do not pick redundant topics. Do not provide anything in your response other than the list. Make sure each page covers a different aspect of ${topic}. Do not describe or provide detail to each topic here, only list them. If you include code examples, do not include their output.`;
 				console.log(tpcPrompt);
@@ -455,11 +494,20 @@
 				playSound("noise.wav");
 				let topics = topicResponse.split('\n');
 				topics = topics.filter(n => n);
-				let topicFinal = "<h1>Table of Contents:</h2><br>";
-				for (const tpc1 of topics) {
-					topicFinal += "<p>"+tpc1+"</p>";
+				if (doReset) {
+					let topicFinal = "<h1>Table of Contents:</h2> \n";
+					for (const tpc1 of topics) {
+						topicFinal += tpc1+"\n";
+					}
+					topicFinal = converter.makeHtml(topicFinal);
+					addToBook("Table of Contents", topicFinal);
+				} else {
+					let newTpcs = bookDict["Table of Contents"];
+					for (const tpc1 of topics) {
+						newTpcs += "<p>"+tpc1+"</p>";
+					}
+					bookDict["Table of Contents"] = newTpcs;
 				}
-				addToBook("Table of Contents", topicFinal);
 				setPage("Table of Contents");
 				playSound("noise.wav");
 
@@ -476,6 +524,7 @@
 					addToBook(tpc,converter.makeHtml(page));
 					playSound("noise.wav");
 					i+=1;
+					attemptTitleChange();
 				}
 
 				if (document.getElementById("addglossary").checked) {
@@ -486,6 +535,9 @@
 					playSound("noise.wav");
 					addToBook("Glossary",converter.makeHtml(page));
 				}
+
+				document.getElementById("btn").disabled = false;
+				document.getElementById("newPageButton").disabled = false;
 
 				status.textContent = "Done!";
 			}
@@ -512,6 +564,7 @@ Make sure not to put a comma after the last question.`;
 				status.textContent = "Done!";
 				generatePracticeHTML(examDict);
 				document.getElementById("checkPracticeExam").style.display = "block";
+				attemptTitleChange();
 			}
 
 			async function generateFlashCards(source) {
@@ -531,6 +584,7 @@ Make sure not to put a comma after the last question.`;
 				status.textContent = "Done!";
 				currentCardIndex = 0;
 				displayFlashcard(currentCardIndex);
+				attemptTitleChange();
 			}
 
 			
@@ -543,6 +597,7 @@ Make sure not to put a comma after the last question.`;
 				status.textContent = `Adding page`;
 				let pagePrompt = book + `Above is the full contents of the chapter until now. Your job is to write a lengthy and informative section for a textbook on ${tpc} geared towards ${complexity}. Write at LEAST ${lengthDict[pageLength]} words and without a conclusion or concluding section. Be very lengthy, detailed, and very informative. DO NOT repeat material already covered in previous chapters. IMPORTANT: DO NOT INCLUDE THE PAGE TITLE MORE THAN ONCE!!!!! Don't just write a list with a bunch of one-sentence snippets- write full paragraphs, and MAINTAIN THE STYLE AND STRUCTURE OF THE ABOVE BOOK. Write as much as possible on the topic, and do not be afraid of lengthy paragraphs if need be.`;
 				let page = await generateResponse(pagePrompt, model);
+				attemptTitleChange();
 				page = resolveCitations(page);
 				playSound("noise.wav");
 				addToBook(tpc,converter.makeHtml(page));
@@ -560,6 +615,9 @@ Make sure not to put a comma after the last question.`;
 
 			function resolveCitations(data) {
 				let txt = data.text;
+				if (data["citations"] == null) {
+					return txt;
+				}
 				let citations = data["citations"].citationSources;
 				let total = 0;
 				if (citations != null && citations.length > 0) {
@@ -605,7 +663,7 @@ Make sure not to put a comma after the last question.`;
 						contents = generateResponse(prompt,mdl, depth+1);
 					}
 					else {
-						return "Uh oh! There was an issue generating this page. There is a known issue with the backend having a 'recitation error', meaning the AI can't quite find its sources and aborts. They're working on a fix to this issue. Sorry!";
+						return {"contents":null, "text":"Uh oh! There was an issue generating this page. There is a known issue with the backend having a 'recitation error', meaning the AI can't quite find its sources and aborts. They're working on a fix to this issue. Sorry!", "citations":null};
 					}
 				}
 				
@@ -785,12 +843,17 @@ Make sure not to put a comma after the last question.`;
 				}
 				newDiv.innerHTML += `<p><i>${originalStatement}</i></p>`
 				playSound("noise.wav");
+				attemptTitleChange();
 				updateCodeBlocks();
 			}
 
 			const chatButton = document.getElementById("chatButton");
 			chatButton.addEventListener("click", async function() {
 				let text = document.getElementById("chatInp").value;
+				if (text.trim() == "") {
+					alert("Uh oh! Make sure you have a question.");
+					return;
+				}
 				let lastChat = document.getElementById("chatgohere").textContent;
 				let pr = `${text}\n\nRespond to the above message. Be thorough and detailed and include at least ${lengthDict[document.getElementById("writeLength").value]/2} words. Refer back to the contents of the below book and the prior chat, if any: BOOK CONTENTS: \n\n${fullBook()} \n\n CHAT CONTENTS: \n\n${lastChat}`;
 				await addToChat(pr,"Original Question: " + text);
@@ -876,6 +939,7 @@ Make sure not to put a comma after the last question.`;
 					document.getElementById("answer").innerHTML = converter.makeHtml(contents);
 				}
 				updateCodeBlocks();
+				attemptTitleChange();
 				playSound("noise.wav");
 			});
 			
@@ -940,7 +1004,7 @@ Make sure not to put a comma after the last question.`;
 			const startBtn = document.getElementById('startBtn');
 			const stopBtn = document.getElementById('stopBtn');
 
-			let isRecording = false;
+			var isRecording = false;
 			let canCheckMessage = false;
 			let hasDetectedKeyword = false;
 			let speechText = '';
@@ -1014,6 +1078,10 @@ Make sure not to put a comma after the last question.`;
 					}
 				}
 
+				if (json.length > 0) {
+					attemptTitleChange();
+				}
+
 				document.getElementById("resetLiveDiv").style.display = "block";
 
 				if (json.length > 0 && document.getElementById("tab7").checked) {
@@ -1030,6 +1098,7 @@ Make sure not to put a comma after the last question.`;
 							newDivs[i].appendChild(writing);
 							await addPage("Context: " + json[i].response,json[i].topic);
 							newDivs[i].removeChild(writing);
+							attemptTitleChange();
 						}
 						writeMyPage();
 					}
@@ -1045,6 +1114,7 @@ Make sure not to put a comma after the last question.`;
 							playSound("noise.wav");
 							addToBook(json[i].topic,resp);
 							newDivs[i].removeChild(writing);
+							attemptTitleChange();
 						};
 						writeDocument();
 					}
@@ -1297,10 +1367,10 @@ Make sure not to put a comma after the last question.`;
 					<label class="tab" for="tab2">Chat</label>
 					<input type="radio" name="tab" id="tab7">
 					<label class="tab" for="tab7">LIVE</label>
-					<input type="radio" name="tab" id="tab4">
-					<label class="tab" for="tab4">Practice</label>
 					<input type="radio" name="tab" id="tab6">
             		<label class="tab" for="tab6">Study</label>
+					<input type="radio" name="tab" id="tab4">
+					<label class="tab" for="tab4">Practice</label>
 					<input type="radio" name="tab" id="tab5">
 					<label class="tab" for="tab5">Quiz</label>
 					<input type="radio" name="tab" id="tab3">
@@ -1334,6 +1404,9 @@ Make sure not to put a comma after the last question.`;
 							<div id="liveModeButtons">
 								<button id="startBtn" class="animBtn">Start Live Study</button>
 								<button id="stopBtn" class="animBtn">Stop Live Study</button>
+								<br>
+								<input type="checkbox" id="quietCheck">
+								<label for="quietCheck">Deliver Responses Quietly</label>
 							</div>
 							<div id="liveModeWarning" style="display:none;">
 								<p>At this time, Live Study does not work in Firefox. We're looking into ways to change that. In the meantime, switch to Chrome, Edge, or Safari.</p>
@@ -1438,10 +1511,11 @@ Make sure not to put a comma after the last question.`;
 							<li><strong>LIVE STUDY MODE! (Working now!)</strong> Live Study is a new, highly experimental feature that interacts with you directly while you study. Just leave it on and talk to it like you would a person. (It's name is Winter!)</li>
 							<li>Live Study can, in realtime, write pages, answer questions, and produce study resources as requested.</li>
 							<li>Certain features will now generate citations for works cited (needs to be improved, currently relying on the finicky Gemini citation system).</li>
-							<li>The Chat UI was completely overhauled to keep context of all prior discussions</li>
 							<li>Users can now save and load JSON files storing their book.</li>
-							<li>Substantial QOL changes to improve the user experience.</li>
-							<li>The color scheme for the UI was redone to be more consistent (and prettier).</li>
+							<li>You can now expand a book with the 'Generate' button, no longer requiring you to reset the full contents.</li>
+							<li>Certain buttons get grayed out while generating pages to avoid overloading the system.</li>
+							<li>The color scheme for the UI was redone to be more consistent (and prettier). Themes coming soon.</li>
+							<li>The background was modified slightly.</li>
 						</ul>
 						<p>A.P. 9/10/2024</p>
 					</div>
