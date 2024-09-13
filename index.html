@@ -381,7 +381,7 @@
 			}
 			
 			function playSound(url) {
-				if (isRecording && docment.getElementById("quietCheck").checked) {
+				if (isRecording && document.getElementById("quietCheck").checked) {
 					return;
 				}
 			  const audio = new Audio(url);
@@ -1214,7 +1214,7 @@ Make sure not to put a comma after the last question.`;
 									// colorPids(average);
 									if (isRecording) {
 										document.getElementById("liveMeter").style.width = `${average}%`;
-										document.getElementById("liveMeter").style.backgroundColor = hasDetectedKeyword ? "navy" : "white";
+										document.getElementById("liveMeter").style.backgroundColor = hasDetectedKeyword ? "navy" : "#e3fcff";
 									}
 								};
 							})
