@@ -218,7 +218,7 @@ background-color: #ccc;
 
 body {
   font-family: "Rubik", sans-serif;
-  padding: 10px;
+  /*padding: 10px;*/
 }
 
 /*#textgohere,#chatgohere {
@@ -337,7 +337,6 @@ label.tab {
     border-width: 2px;
     border-color: transparent;
 }
-
 #tab1:checked+label {
     border-color: var(--element-bg-2);
 }
@@ -677,7 +676,7 @@ fieldset > button {
 	}
 }*/
 
-#animatedBar {
+.animatedBar {
 	border-radius: 10px;
 	background-color: #c3f1ff;
 	width: 90%;
@@ -689,7 +688,7 @@ fieldset > button {
 	text-align:center;
 }
 
-#liveMeter {
+.liveMeter {
 	width: 0;
 	height: 10px;
 	margin-top: 5px;
@@ -701,7 +700,15 @@ fieldset > button {
 	text-align:center;
 }
 
+.mobileOnly {
+	display:none;
+}
+
 @media (max-width: 600px) {
+
+	.mobileOnly {
+		display: block;
+	}
    .wrapper {
 	   flex-direction: column;
    }
@@ -717,11 +724,6 @@ fieldset > button {
 	   margin-top: 15px;
 	   max-width: 90%;
 	   min-width: 90%;
-   }
-   
-   label.tab {
-	   width: 20vw;
-	   height: 5vh;
    }
    
    select {
@@ -754,4 +756,19 @@ fieldset > button {
 	border-right: none;
 	border-bottom: 1px solid white;
   }
+
+	.content1, .content2, .content3,
+	.content4, .content5, .content6,
+	.content7 {
+		padding: 20px 2px;
+	}
+
+	fieldset > button {
+		width: auto;
+	}
+
+	fieldset > textarea {
+		width: auto;
+	}
+
 }

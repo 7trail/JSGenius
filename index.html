@@ -1036,7 +1036,14 @@ Make sure not to put a comma after the last question.`;
 					newDiv.classList.add("liveDiv");
 					const h1 = document.createElement("h3");
 
-					h1.textContent = json[i].topic + ` (${json[i].intent})`;
+					let intentsDict = {
+						"PAGE": "Winter is writing an educational page for you on the given topic!",
+						"DOCUMENT": "Winter is writing the requested document for you!",
+						"STUDY": "Winter has created study resources for you!",
+						"FEEDBACK": ""
+					}
+
+					h1.textContent = json[i].topic + `<i>${intentsDict[json[i].intent]}</i>`;
 
 					lst.appendChild(newDiv);
 					newDiv.appendChild(h1);
@@ -1081,6 +1088,7 @@ Make sure not to put a comma after the last question.`;
 				if (json.length > 0) {
 					attemptTitleChange();
 				}
+				playSound("noise.wav");
 
 				document.getElementById("resetLiveDiv").style.display = "block";
 
@@ -1213,8 +1221,11 @@ Make sure not to put a comma after the last question.`;
 									//console.log(Math.round(average));
 									// colorPids(average);
 									if (isRecording) {
-										document.getElementById("liveMeter").style.width = `${average}%`;
-										document.getElementById("liveMeter").style.backgroundColor = hasDetectedKeyword ? "navy" : "#e3fcff";
+										let els = document.querySelectorAll(".liveMeter");
+										for (let i = 0; i < els.length; i++) {
+											els[i].style.width = `${average}%`;
+											els[i].style.backgroundColor = hasDetectedKeyword ? "navy" : "#e3fcff";
+										}
 									}
 								};
 							})
@@ -1288,8 +1299,8 @@ Make sure not to put a comma after the last question.`;
 					<div class="section">
 						<div id="fields">
 						<h1>AI Textbooks</h1>
-						<div id="animatedBar">
-							<div id="liveMeter"></div>
+						<div class="animatedBar">
+							<div class="liveMeter"></div>
 						</div>
 						<label for="imp">Chapter Topic:</label>
 						<br>
@@ -1336,11 +1347,10 @@ Make sure not to put a comma after the last question.`;
 									</select>
 								</div>
 								<div style="flex-grow:1; padding: 10px;">
-									<button id="saveBookFile" class="animBtn">Save Book File</button>
-									<br>
-									<div style="display:block;margin:auto;">
-										<input type="file" id="openFile"/>
-										<button id="openBookFile" class="animBtn">Open Book File</button>
+									<div class="wrapper">
+										<button id="saveBookFile" style="flex-shrink:1;height: 50px;" class="animBtn">Save Book File</button>
+										<input type="file" style="flex-shrink:1;margin-top: 10px; margin-bottom: 10px;" id="openFile"/>
+										<button id="openBookFile" style="flex-shrink:1;height: 50px;" class="animBtn">Open Book File</button>
 									</div>
 								</div>
 							</div>
@@ -1415,6 +1425,9 @@ Make sure not to put a comma after the last question.`;
 							<strong id="liveText"></strong>
 						</div>
 						<div id="debugLiveTranscript" class="debug"></div>
+						<div class="animatedBar mobileOnly">
+							<div class="liveMeter"></div>
+						</div>
 						<div id="liveField">
 
 						</div>
@@ -1504,7 +1517,7 @@ Make sure not to put a comma after the last question.`;
 						</div>
 					</div>
 					<div class="content3" id="content3">
-						<button class="animBtn" style="width: 25%; font-size: 16px;" id="printBtn">Print book as PDF</button>
+						<button class="animBtn" style="padding: 20px; font-size: 16px;" id="printBtn">Print book as PDF</button>
 						<br>
 						<h2>Changelog</h2>
 						<ul>
