@@ -556,7 +556,9 @@ Make sure not to put a comma after the last question.`;
 				let response = await generateResponse(prompt);
 				response = response.text;
 				playSound("noise.wav");
-				response = "["+response+"]";
+				if (!response.startsWith("[")) {
+					response = "["+response+"]";
+				}
 				console.log(response);
 				let json = JSON.parse(jsonrepair.jsonrepair(response));
 				examDict = json;
@@ -1043,12 +1045,12 @@ Make sure not to put a comma after the last question.`;
 						"FEEDBACK": ""
 					}
 
-					h1.textContent = json[i].topic + `<i>${intentsDict[json[i].intent]}</i>`;
+					h1.textContent = json[i].topic;
 
 					lst.appendChild(newDiv);
 					newDiv.appendChild(h1);
 					const p = document.createElement("p");
-					p.textContent = json[i].response;
+					p.innerHTML = comverter.makeHtml(json[i].response) + `<p><i>${intentsDict[json[i].intent]}</i></p>`;
 					newDiv.appendChild(p);
 					topicList.push(json[i]);
 					newDivs.push(newDiv);
