@@ -850,6 +850,20 @@ Make sure not to put a comma after the last question.`;
 			}
 
 			const chatButton = document.getElementById("chatButton");
+
+			chatButton.addEventListener('keydown', async function(e) {
+				if(e.keyCode == 13 && e.metaKey) {
+					let text = document.getElementById("chatInp").value;
+					if (text.trim() == "") {
+						alert("Uh oh! Make sure you have a question.");
+						return;
+					}
+					let lastChat = document.getElementById("chatgohere").textContent;
+					let pr = `${text}\n\nRespond to the above message. Be thorough and detailed and include at least ${lengthDict[document.getElementById("writeLength").value]/2} words. Refer back to the contents of the below book and the prior chat, if any: BOOK CONTENTS: \n\n${fullBook()} \n\n CHAT CONTENTS: \n\n${lastChat}`;
+					await addToChat(pr,"Original Question: " + text);
+				}
+			});
+
 			chatButton.addEventListener("click", async function() {
 				let text = document.getElementById("chatInp").value;
 				if (text.trim() == "") {
