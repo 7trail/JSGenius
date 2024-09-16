@@ -690,6 +690,13 @@ Make sure not to put a comma after the last question.`;
 					let pr = `${document.getElementById("freeformTopic").value} \n\n Create a free-form practice problem using the concepts described in the provided text. Don't include statements about what the question will develop- only include the instructions, and DO NOT include the answer.`;
 					await createFreeformPractice(pr);
 				});
+
+				document.getElementById("freeformTopic").addEventListener('keydown', async function(e) {
+					if(e.keyCode == 13 && (e.metaKey || e.ctrlKey)) {
+						let pr = `${document.getElementById("freeformTopic").value} \n\n Create a free-form practice problem using the concepts described in the provided text. Don't include statements about what the question will develop- only include the instructions, and DO NOT include the answer.`;
+						await createFreeformPractice(pr);
+					}
+				});
 				let card = document.getElementById("flashcard-container");
 				card.addEventListener('click', () => {
 				card.classList.toggle('flipped');
@@ -851,20 +858,7 @@ Make sure not to put a comma after the last question.`;
 
 			const chatButton = document.getElementById("chatButton");
 
-			chatButton.addEventListener('keydown', async function(e) {
-				if(e.keyCode == 13 && e.metaKey) {
-					let text = document.getElementById("chatInp").value;
-					if (text.trim() == "") {
-						alert("Uh oh! Make sure you have a question.");
-						return;
-					}
-					let lastChat = document.getElementById("chatgohere").textContent;
-					let pr = `${text}\n\nRespond to the above message. Be thorough and detailed and include at least ${lengthDict[document.getElementById("writeLength").value]/2} words. Refer back to the contents of the below book and the prior chat, if any: BOOK CONTENTS: \n\n${fullBook()} \n\n CHAT CONTENTS: \n\n${lastChat}`;
-					await addToChat(pr,"Original Question: " + text);
-				}
-			});
-
-			chatButton.addEventListener("click", async function() {
+			async function generateChat() {
 				let text = document.getElementById("chatInp").value;
 				if (text.trim() == "") {
 					alert("Uh oh! Make sure you have a question.");
@@ -873,6 +867,16 @@ Make sure not to put a comma after the last question.`;
 				let lastChat = document.getElementById("chatgohere").textContent;
 				let pr = `${text}\n\nRespond to the above message. Be thorough and detailed and include at least ${lengthDict[document.getElementById("writeLength").value]/2} words. Refer back to the contents of the below book and the prior chat, if any: BOOK CONTENTS: \n\n${fullBook()} \n\n CHAT CONTENTS: \n\n${lastChat}`;
 				await addToChat(pr,"Original Question: " + text);
+			}
+
+			document.getElementById("chatInp").addEventListener('keydown', async function(e) {
+				if(e.keyCode == 13 && (e.metaKey || e.ctrlKey)) {
+					await generateChat();
+				}
+			});
+
+			chatButton.addEventListener("click", async function() {
+				await generateChat();
 			});
 			
 			const elabButton = document.querySelector(".elaborate-button");
@@ -1314,7 +1318,8 @@ Make sure not to put a comma after the last question.`;
 				<div class="sections">
 					<div class="section">
 						<div id="fields">
-						<h1>AI Textbooks</h1>
+						<h1 style="margin-bottom: 2px;">Winter</h1>
+						<h2 style="margin-top: 2px;">AI Learning Tools</h2>
 						<div class="animatedBar">
 							<div class="liveMeter"></div>
 						</div>
