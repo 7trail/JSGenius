@@ -850,7 +850,20 @@ Make sure not to put a comma after the last question.`;
 					contents += chunkText;
 					newDiv.innerHTML = converter.makeHtml(contents);
 				}
-				newDiv.innerHTML += `<p><i>${originalStatement}</i></p>`
+				newDiv.innerHTML += `<p><i>${originalStatement}</i></p>`;
+				
+				let addPageBtn = document.createElement("button");
+				addPageBtn.textContent = "Save as Page";
+				addPageBtn.classList.add("animBtn");
+				addPageBtn.addEventListener("click", async function() {
+					let prompt = `Source text: ${contents} \n\n Using the above text, write a three word title for the above text. Only include the title, nothing else.`;
+					let r = await generateResponse(prompt);
+					bookDict[r] = converter.makeHtml(contents);
+					updateListBox();
+					newDiv.removeChild(addPageBtn);
+				});
+				newDiv.appendChild(addPageBtn);
+
 				playSound("noise.wav");
 				attemptTitleChange();
 				updateCodeBlocks();
