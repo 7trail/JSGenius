@@ -858,6 +858,7 @@ Make sure not to put a comma after the last question.`;
 				addPageBtn.addEventListener("click", async function() {
 					let prompt = `Source text: ${contents} \n\n Using the above text, write a three word title for the above text. Only include the title, nothing else.`;
 					let r = await generateResponse(prompt);
+					r = r.text;
 					bookDict[r] = converter.makeHtml(contents);
 					updateListBox();
 					newDiv.removeChild(addPageBtn);
