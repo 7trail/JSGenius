@@ -1082,7 +1082,7 @@ Make sure not to put a comma after the last question.`;
 					lst.appendChild(newDiv);
 					newDiv.appendChild(h1);
 					const p = document.createElement("p");
-					p.innerHTML = comverter.makeHtml(json[i].response) + `<p><i>${intentsDict[json[i].intent]}</i></p>`;
+					p.innerHTML = converter.makeHtml(json[i].response) + `<p><i>${intentsDict[json[i].intent]}</i></p>`;
 					newDiv.appendChild(p);
 					topicList.push(json[i]);
 					newDivs.push(newDiv);
