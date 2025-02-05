@@ -35,7 +35,7 @@
 
 			let api_keys = [
 				"V3JpdHRlbiBieSBBdXN0aW4gUGhpbGxpcHMgQXVnLVNlcCAyMDI0",
-				"AIzaSyD9xMiW0oSglYPfQh95Rn0TRHpjTZFduaE",
+				"AIzaSyAkNOjhY-ayGISlV2yHXWIjrA-v0VOojHE",
 				"VEhJUyBXQVMgTVkgSURFQS4gRmFsbCBvZiAyMDIz",
 				"QWRkaXRpb25hbCBMaWJyYXJpZXMgTGljZW5zZXMgaW5jbHVkZWQ="
 			];
@@ -103,7 +103,7 @@
 			}
 			
 			var tone = "Professional, detailed, geared towards beginners";
-			const modelId="gemini-1.5-flash-exp-0827";
+			const modelId="gemini-1.5-flash";
 			var tocModel = genAI.getGenerativeModel({ model: modelId, systemInstruction: `You write table of contents sections for a textbook. You are given a topic and number of pages and and include EXACTLY that many pages- no more, no less. You do not specify the number of pages or page numbers for any given section, only the order they are included.`, safetySettings});
 			var model = genAI.getGenerativeModel({ model: modelId, systemInstruction: `You write textbooks and sections for textbooks and are ${tone}. Don't repeat yourself in your books.`, safetySettings});
 			var chatModel = genAI.getGenerativeModel({ model: modelId, systemInstruction: `You are Winter, created by JSGenius to assist people with learning. You are detailed, conversational, helpful`, safetySettings});
